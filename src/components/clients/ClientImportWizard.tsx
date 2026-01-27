@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Upload,
   FileSpreadsheet,
@@ -24,9 +25,11 @@ import {
   ChevronRight,
   Loader2,
   Download,
+  BookOpen,
 } from 'lucide-react';
 import { UnifiedColumnMappingTable } from './import/UnifiedColumnMappingTable';
 import { UnifiedPreviewTable } from './import/UnifiedPreviewTable';
+import { ImportInstructionsTab } from './import/ImportInstructionsTab';
 import type { ParsedRow } from './import/types';
 import type { UnifiedColumnMapping, ValidatedUnifiedRow } from './import/unifiedTypes';
 import {
@@ -494,48 +497,65 @@ export function ClientImportWizard({ open, onOpenChange }: ClientImportWizardPro
         <div className="flex-1 overflow-y-auto py-4">
           {/* Step 1: Upload */}
           {currentStep === 1 && (
-            <div className="space-y-6">
-              <Card
-                className="border-dashed cursor-pointer hover:border-primary transition-colors"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <FileSpreadsheet className="h-16 w-16 text-muted-foreground/50 mb-4" />
-                  <p className="text-lg font-medium">Arrastra tu archivo aquí o haz clic para seleccionar</p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Formatos soportados: Excel (.xlsx, .xls) o CSV
-                  </p>
-                  {file && (
-                    <Badge className="mt-4" variant="secondary">
-                      {file.name}
-                    </Badge>
-                  )}
-                </CardContent>
-              </Card>
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                accept=".xlsx,.xls,.csv"
-                onChange={handleFileSelect}
-              />
+            <Tabs defaultValue="upload" className="h-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="upload" className="flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  Subir Archivo
+                </TabsTrigger>
+                <TabsTrigger value="instructions" className="flex items-center gap-2">
+                  <BookOpen className="h-4 w-4" />
+                  Instrucciones
+                </TabsTrigger>
+              </TabsList>
               
-              <Button variant="outline" onClick={downloadUnifiedTemplate} className="w-full">
-                <Download className="h-4 w-4 mr-2" />
-                Descargar plantilla de ejemplo
-              </Button>
+              <TabsContent value="upload" className="space-y-6 mt-4">
+                <Card
+                  className="border-dashed cursor-pointer hover:border-primary transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <FileSpreadsheet className="h-16 w-16 text-muted-foreground/50 mb-4" />
+                    <p className="text-lg font-medium">Arrastra tu archivo aquí o haz clic para seleccionar</p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Formatos soportados: Excel (.xlsx, .xls) o CSV
+                    </p>
+                    {file && (
+                      <Badge className="mt-4" variant="secondary">
+                        {file.name}
+                      </Badge>
+                    )}
+                  </CardContent>
+                </Card>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={handleFileSelect}
+                />
+                
+                <Button variant="outline" onClick={downloadUnifiedTemplate} className="w-full">
+                  <Download className="h-4 w-4 mr-2" />
+                  Descargar plantilla de ejemplo (hasta 7 beneficiarios)
+                </Button>
 
-              <div className="bg-muted/50 rounded-lg p-4 text-sm">
-                <p className="font-medium mb-2">Estructura del archivo:</p>
-                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  <li>Cada fila representa una póliza con su tomador</li>
-                  <li>El <strong>número de póliza</strong> es el identificador único</li>
-                  <li>Puedes incluir múltiples beneficiarios por póliza (Ben. 1, Ben. 2, etc.)</li>
-                  <li>Si la póliza ya existe, se actualizará con los nuevos datos</li>
-                  <li>Si el tomador ya existe (por cédula), se reutilizará</li>
-                </ul>
-              </div>
-            </div>
+                <div className="bg-muted/50 rounded-lg p-4 text-sm">
+                  <p className="font-medium mb-2">Estructura del archivo:</p>
+                  <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                    <li>Cada fila representa una póliza con su tomador</li>
+                    <li>El <strong>número de póliza</strong> es el identificador único</li>
+                    <li>Puedes incluir hasta <strong>7 beneficiarios</strong> por póliza (con F.Nac, Tel, Email)</li>
+                    <li>Si la póliza ya existe, se actualizará con los nuevos datos</li>
+                    <li>Si el tomador ya existe (por cédula), se reutilizará</li>
+                  </ul>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="instructions" className="mt-4">
+                <ImportInstructionsTab insurers={insurers} products={products} />
+              </TabsContent>
+            </Tabs>
           )}
 
           {/* Step 2: Column Mapping */}

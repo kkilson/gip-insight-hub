@@ -78,7 +78,7 @@ export function autoMapUnifiedColumns(headers: string[]): UnifiedColumnMapping[]
       dbField = 'coverage_amount';
     } else if (h.includes('deducible') || h === 'deductible') {
       dbField = 'deductible';
-    } else if (h.includes('pago') && h.includes('prima')) {
+    } else if ((h.includes('fecha') && h.includes('pago')) || h.includes('pago prima') || h.includes('proximo pago') || h.includes('próximo pago')) {
       dbField = 'premium_payment_date';
     } else if ((h.includes('nota') && h.includes('poliza')) || h === 'notas póliza') {
       dbField = 'policy_notes';
@@ -117,9 +117,11 @@ export function autoMapUnifiedColumns(headers: string[]): UnifiedColumnMapping[]
       }
     }
     
-    // Beneficiary fields - detected by "beneficiario" keyword or pattern
-    else if (beneficiaryIndex !== null || h.includes('beneficiario') || h.includes('ben.')) {
+    // Beneficiary fields - detected by "beneficiario" keyword or pattern (supports 1-7)
+    else if (beneficiaryIndex !== null || h.includes('beneficiario') || h.includes('ben.') || h.includes('ben ')) {
       detectedBenIndex = beneficiaryIndex || potentialBenIndex || 1;
+      // Clamp to max 7 beneficiaries
+      if (detectedBenIndex > 7) detectedBenIndex = 7;
       
       if (h.includes('nombre') && !h.includes('apellido')) {
         dbField = 'beneficiary_first_name';
@@ -131,11 +133,11 @@ export function autoMapUnifiedColumns(headers: string[]): UnifiedColumnMapping[]
         dbField = 'beneficiary_identification_number';
       } else if (h.includes('parentesco') || h.includes('relacion') || h.includes('relación')) {
         dbField = 'beneficiary_relationship';
-      } else if (h.includes('nacimiento')) {
+      } else if (h.includes('nacimiento') || h.includes('f.nac') || h.includes('fnac')) {
         dbField = 'beneficiary_birth_date';
-      } else if (h.includes('telefono') || h.includes('teléfono')) {
+      } else if (h.includes('telefono') || h.includes('teléfono') || h.includes('tel ') || h.includes('tel.')) {
         dbField = 'beneficiary_phone';
-      } else if (h.includes('email') || h.includes('correo')) {
+      } else if (h.includes('email') || h.includes('correo') || h.includes('mail')) {
         dbField = 'beneficiary_email';
       }
     }
@@ -419,28 +421,51 @@ export function checkUnifiedRequiredFieldsMapped(
   );
 }
 
-// Download unified template
+// Download unified template with all 7 beneficiaries
 export function downloadUnifiedTemplate() {
-  const templateData = [
-    [
-      'Número Póliza', 'Aseguradora', 'Producto', 'Fecha Inicio', 'Fecha Fin', 'Prima', 'Estado', 'Frecuencia Pago',
-      'Cédula Tomador', 'Nombres Tomador', 'Apellidos Tomador', 'Email Tomador', 'Teléfono Tomador',
-      'Nombre Ben. 1', 'Apellido Ben. 1', 'Parentesco 1', 'Cédula Ben. 1',
-      'Nombre Ben. 2', 'Apellido Ben. 2', 'Parentesco 2', 'Cédula Ben. 2',
-    ],
-    [
-      'POL-2024-001', 'Mercantil', 'Global Benefits', '2024-01-01', '2025-01-01', '1500', 'vigente', 'mensual',
-      'V-12345678', 'Juan', 'Pérez', 'juan@email.com', '0412-1234567',
-      'María', 'Pérez', 'conyuge', 'V-87654321',
-      'Carlos', 'Pérez', 'hijo', 'V-11111111',
-    ],
-    [
-      'POL-2024-002', 'Seguros XYZ', 'Premium', '2024-02-01', '2025-02-01', '2000', 'vigente', 'anual',
-      'V-22222222', 'Ana', 'García', 'ana@email.com', '0414-9876543',
-      'Pedro', 'García', 'conyuge', 'V-33333333',
-      '', '', '', '',
-    ],
+  // Build headers with all 7 beneficiaries
+  const baseHeaders = [
+    'Número Póliza', 'Aseguradora', 'Producto', 'Fecha Inicio', 'Fecha Fin', 
+    'Prima', 'Estado', 'Frecuencia Pago', 'Fecha Pago Prima',
+    'Cédula Tomador', 'Nombres Tomador', 'Apellidos Tomador', 'Email Tomador', 'Teléfono Tomador',
   ];
+  
+  // Add beneficiary columns (7 beneficiaries with all fields)
+  const beneficiaryHeaders: string[] = [];
+  for (let i = 1; i <= 7; i++) {
+    beneficiaryHeaders.push(
+      `Nombre Ben. ${i}`, `Apellido Ben. ${i}`, `Parentesco ${i}`, 
+      `Cédula Ben. ${i}`, `F.Nac Ben. ${i}`, `Tel Ben. ${i}`, `Email Ben. ${i}`
+    );
+  }
+  
+  const headers = [...baseHeaders, ...beneficiaryHeaders];
+  
+  // Sample data row 1
+  const row1 = [
+    'POL-2024-001', 'Mercantil Venezuela', 'GLOBAL BENEFITS PREMIUM', '2024-01-01', '2025-01-01', 
+    '1500', 'vigente', 'mensual', '2024-02-01',
+    'V-12345678', 'Juan', 'Pérez', 'juan@email.com', '0412-1234567',
+    // Ben 1
+    'María', 'Pérez', 'conyuge', 'V-87654321', '1985-05-15', '0414-1111111', 'maria@email.com',
+    // Ben 2
+    'Carlos', 'Pérez', 'hijo', 'V-11111111', '2010-03-20', '0412-2222222', '',
+    // Ben 3-7 empty
+    ...Array(35).fill(''),
+  ];
+  
+  // Sample data row 2
+  const row2 = [
+    'POL-2024-002', 'BMI', 'AZURE', '2024-02-01', '2025-02-01', 
+    '2000', 'vigente', 'anual', '2024-03-01',
+    'V-22222222', 'Ana', 'García', 'ana@email.com', '0414-9876543',
+    // Ben 1
+    'Pedro', 'García', 'conyuge', 'V-33333333', '1980-11-10', '0424-3333333', 'pedro@email.com',
+    // Ben 2-7 empty
+    ...Array(42).fill(''),
+  ];
+
+  const templateData = [headers, row1, row2];
 
   const ws = XLSX.utils.aoa_to_sheet(templateData);
   const wb = XLSX.utils.book_new();

@@ -117,9 +117,9 @@ export const UNIFIED_DB_FIELDS: UnifiedDBField[] = [
   { value: 'status', label: 'Estado Póliza', required: false, group: 'policy' },
   { value: 'premium', label: 'Prima (USD)', required: false, group: 'policy' },
   { value: 'payment_frequency', label: 'Frecuencia de Pago', required: false, group: 'policy' },
+  { value: 'premium_payment_date', label: 'Fecha Pago Prima', required: false, group: 'policy' },
   { value: 'coverage_amount', label: 'Suma Asegurada', required: false, group: 'policy' },
   { value: 'deductible', label: 'Deducible', required: false, group: 'policy' },
-  { value: 'premium_payment_date', label: 'Fecha Pago Prima', required: false, group: 'policy' },
   { value: 'policy_notes', label: 'Notas Póliza', required: false, group: 'policy' },
   
   // Client (Tomador) fields
@@ -137,16 +137,19 @@ export const UNIFIED_DB_FIELDS: UnifiedDBField[] = [
   { value: 'client_occupation', label: 'Ocupación Tomador', required: false, group: 'client' },
   { value: 'client_workplace', label: 'Trabajo Tomador', required: false, group: 'client' },
   
-  // Beneficiary fields (will be used with index)
+  // Beneficiary fields (will be used with index 1-7)
   { value: 'beneficiary_first_name', label: 'Nombres Beneficiario', required: false, group: 'beneficiary' },
   { value: 'beneficiary_last_name', label: 'Apellidos Beneficiario', required: false, group: 'beneficiary' },
   { value: 'beneficiary_identification_type', label: 'Tipo ID Beneficiario', required: false, group: 'beneficiary' },
   { value: 'beneficiary_identification_number', label: 'Cédula Beneficiario', required: false, group: 'beneficiary' },
   { value: 'beneficiary_relationship', label: 'Parentesco', required: false, group: 'beneficiary' },
-  { value: 'beneficiary_birth_date', label: 'F. Nacimiento Beneficiario', required: false, group: 'beneficiary' },
+  { value: 'beneficiary_birth_date', label: 'F. Nacimiento Ben.', required: false, group: 'beneficiary' },
   { value: 'beneficiary_phone', label: 'Teléfono Beneficiario', required: false, group: 'beneficiary' },
   { value: 'beneficiary_email', label: 'Email Beneficiario', required: false, group: 'beneficiary' },
 ];
+
+// Maximum beneficiaries supported per policy
+export const MAX_BENEFICIARIES = 7;
 
 // Get fields by group for display
 export function getFieldsByGroup(group: FieldGroup): UnifiedDBField[] {
