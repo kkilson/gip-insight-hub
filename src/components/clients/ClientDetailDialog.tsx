@@ -38,7 +38,9 @@ import {
   Trash2,
   Loader2,
   AlertCircle,
+  Paperclip,
 } from 'lucide-react';
+import { FileAttachments } from './FileAttachments';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -66,6 +68,7 @@ const statusLabels: Record<string, string> = {
 };
 
 const relationshipLabels: Record<string, string> = {
+  tomador_titular: 'Tomador y titular',
   conyuge: 'Cónyuge',
   hijo: 'Hijo/a',
   padre: 'Padre',
@@ -235,10 +238,11 @@ export function ClientDetailDialog({
           ) : (
             <div className="flex-1 overflow-y-auto">
               <Tabs defaultValue="info" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="info">Información</TabsTrigger>
                   <TabsTrigger value="policies">Pólizas ({policies?.length || 0})</TabsTrigger>
                   <TabsTrigger value="beneficiaries">Beneficiarios</TabsTrigger>
+                  <TabsTrigger value="attachments">Archivos</TabsTrigger>
                   <TabsTrigger value="history">Historial</TabsTrigger>
                 </TabsList>
 
@@ -432,6 +436,60 @@ export function ClientDetailDialog({
                       </CardContent>
                     </Card>
                   )}
+                </TabsContent>
+
+                <TabsContent value="attachments" className="space-y-6 mt-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <User className="h-5 w-5" />
+                        Documentos del Tomador
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <FileAttachments
+                        entityType="client"
+                        entityId={clientId || undefined}
+                        title="Archivos del tomador"
+                      />
+                    </CardContent>
+                  </Card>
+
+                  {policies?.map((policy) => (
+                    <Card key={policy.id}>
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <FileText className="h-5 w-5" />
+                          Documentos de Póliza: {policy.policy_number || 'Sin número'}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <FileAttachments
+                          entityType="policy"
+                          entityId={policy.id}
+                          title="Archivos de la póliza"
+                        />
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                  {beneficiaries?.map((ben) => (
+                    <Card key={ben.id}>
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Users className="h-5 w-5" />
+                          Documentos de {ben.first_name} {ben.last_name}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <FileAttachments
+                          entityType="beneficiary"
+                          entityId={ben.id}
+                          title="Archivos del beneficiario"
+                        />
+                      </CardContent>
+                    </Card>
+                  ))}
                 </TabsContent>
 
                 <TabsContent value="history" className="space-y-4 mt-4">
