@@ -94,8 +94,13 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
   // Populate form with existing data
   useEffect(() => {
     if (existingClient) {
+      // Handle identification_type mapping (ruc -> rif for legacy data)
+      const idType = existingClient.identification_type === 'ruc' 
+        ? 'rif' 
+        : existingClient.identification_type;
+      
       setClientData({
-        identification_type: existingClient.identification_type,
+        identification_type: idType as ClientFormData['identification_type'],
         identification_number: existingClient.identification_number,
         first_name: existingClient.first_name,
         last_name: existingClient.last_name,
@@ -136,18 +141,24 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
   useEffect(() => {
     if (existingBeneficiaries?.length) {
       setBeneficiaries(
-        existingBeneficiaries.map((b) => ({
-          id: b.id,
-          first_name: b.first_name,
-          last_name: b.last_name,
-          identification_type: b.identification_type || 'cedula',
-          identification_number: b.identification_number || undefined,
-          relationship: b.relationship,
-          percentage: b.percentage.toString(),
-          birth_date: b.birth_date || undefined,
-          phone: b.phone || undefined,
-          email: b.email || undefined,
-        }))
+        existingBeneficiaries.map((b) => {
+          // Handle identification_type mapping (ruc -> rif for legacy data)
+          const idType = b.identification_type === 'ruc' 
+            ? 'rif' 
+            : (b.identification_type || 'cedula');
+          
+          return {
+            id: b.id,
+            first_name: b.first_name,
+            last_name: b.last_name,
+            identification_type: idType as BeneficiaryFormData['identification_type'],
+            identification_number: b.identification_number || undefined,
+            relationship: b.relationship as BeneficiaryFormData['relationship'],
+            birth_date: b.birth_date || undefined,
+            phone: b.phone || undefined,
+            email: b.email || undefined,
+          };
+        })
       );
     }
   }, [existingBeneficiaries]);
@@ -244,7 +255,7 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
             identification_type: b.identification_type || 'cedula',
             identification_number: b.identification_number || null,
             relationship: b.relationship,
-            percentage: parseFloat(b.percentage),
+            percentage: 100, // Default to 100% since we removed percentage field
             birth_date: b.birth_date || null,
             phone: b.phone || null,
             email: b.email || null,

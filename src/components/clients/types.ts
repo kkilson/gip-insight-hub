@@ -1,5 +1,5 @@
 export interface ClientFormData {
-  identification_type: 'cedula' | 'pasaporte' | 'ruc' | 'otro';
+  identification_type: 'cedula' | 'pasaporte' | 'rif' | 'otro';
   identification_number: string;
   first_name: string;
   last_name: string;
@@ -34,10 +34,9 @@ export interface BeneficiaryFormData {
   id: string;
   first_name: string;
   last_name: string;
-  identification_type?: 'cedula' | 'pasaporte' | 'ruc' | 'otro';
+  identification_type?: 'cedula' | 'pasaporte' | 'rif' | 'otro';
   identification_number?: string;
-  relationship: 'conyuge' | 'hijo' | 'padre' | 'madre' | 'hermano' | 'otro';
-  percentage: string;
+  relationship: 'conyuge' | 'hijo' | 'padre' | 'madre' | 'hermano' | 'tomador_titular' | 'otro';
   birth_date?: string;
   phone?: string;
   email?: string;
