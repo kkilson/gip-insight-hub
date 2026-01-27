@@ -216,31 +216,12 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="p-6 lg:p-8 space-y-6">
       {/* Header */}
-      <header className="bg-primary text-primary-foreground shadow-lg">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/dashboard')}
-              className="text-primary-foreground hover:bg-primary-foreground/10"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-xl font-bold">Configuración</h1>
-              <p className="text-sm text-primary-foreground/70">
-                Administración del sistema
-              </p>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Configuración</h1>
+        <p className="text-muted-foreground">Administración del sistema</p>
+      </div>
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -392,7 +373,6 @@ export default function Settings() {
             </div>
           </CardContent>
         </Card>
-      </main>
     </div>
   );
 }
