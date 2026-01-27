@@ -12,10 +12,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, Users, Loader2, Eye } from 'lucide-react';
+import { Plus, Users, Loader2, Eye, Upload } from 'lucide-react';
 import { ClientFormWizard } from '@/components/clients/ClientFormWizard';
 import { ClientEditWizard } from '@/components/clients/ClientEditWizard';
 import { ClientDetailDialog } from '@/components/clients/ClientDetailDialog';
+import { ClientImportWizard } from '@/components/clients/ClientImportWizard';
 import { ClientFilters, type ClientFiltersState } from '@/components/clients/ClientFilters';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -23,12 +24,13 @@ import { es } from 'date-fns/locale';
 const identificationLabels: Record<string, string> = {
   cedula: 'Cédula',
   pasaporte: 'Pasaporte',
-  ruc: 'RUC',
+  rif: 'RIF',
   otro: 'Otro',
 };
 
 export default function Clients() {
   const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [editClientId, setEditClientId] = useState<string | null>(null);
   const [viewClientId, setViewClientId] = useState<string | null>(null);
   const [filters, setFilters] = useState<ClientFiltersState>({
@@ -132,10 +134,16 @@ export default function Clients() {
           <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
           <p className="text-muted-foreground">Gestión de clientes y sus pólizas</p>
         </div>
-        <Button onClick={() => setIsWizardOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nuevo Cliente
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsImportOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            Importar Excel
+          </Button>
+          <Button onClick={() => setIsWizardOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nuevo Cliente
+          </Button>
+        </div>
       </div>
 
       <ClientFilters filters={filters} onFiltersChange={setFilters} />
@@ -225,6 +233,8 @@ export default function Clients() {
       )}
 
       <ClientFormWizard open={isWizardOpen} onOpenChange={setIsWizardOpen} />
+      
+      <ClientImportWizard open={isImportOpen} onOpenChange={setIsImportOpen} />
       
       <ClientEditWizard
         clientId={editClientId}
