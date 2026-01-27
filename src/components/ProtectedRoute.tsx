@@ -1,6 +1,7 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -19,8 +20,40 @@ export function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { user, role, hasRole, isLoading } = useAuthContext();
   const location = useLocation();
+  const [noAdminExists, setNoAdminExists] = useState<boolean | null>(null);
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
 
-  if (isLoading) {
+  useEffect(() => {
+    const checkIfAdminExists = async () => {
+      if (!user || hasRole) {
+        setCheckingAdmin(false);
+        return;
+      }
+
+      try {
+        // Call the RPC function to check if any admin exists
+        const { data, error } = await supabase.rpc('no_admin_exists');
+        
+        if (error) {
+          console.error('Error checking admin existence:', error);
+          setNoAdminExists(false);
+        } else {
+          setNoAdminExists(data as boolean);
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        setNoAdminExists(false);
+      } finally {
+        setCheckingAdmin(false);
+      }
+    };
+
+    if (!isLoading) {
+      checkIfAdminExists();
+    }
+  }, [user, hasRole, isLoading]);
+
+  if (isLoading || checkingAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -36,7 +69,15 @@ export function ProtectedRoute({
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  // User has no role assigned
+  // User has no role but no admin exists - redirect to first time setup
+  if (!hasRole && noAdminExists) {
+    if (location.pathname !== '/setup') {
+      return <Navigate to="/setup" replace />;
+    }
+    return <>{children}</>;
+  }
+
+  // User has no role assigned and there is an admin
   if (requireAnyRole && !hasRole) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-8">
