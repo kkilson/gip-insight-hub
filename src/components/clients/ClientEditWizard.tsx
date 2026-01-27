@@ -124,10 +124,11 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
         end_date: existingPolicy.end_date,
         status: existingPolicy.status || 'en_tramite',
         premium: existingPolicy.premium?.toString() || undefined,
-        payment_frequency: existingPolicy.payment_frequency || 'mensual',
+        payment_frequency: (existingPolicy.payment_frequency === 'unico' ? 'mensual' : existingPolicy.payment_frequency) || 'mensual',
         coverage_amount: existingPolicy.coverage_amount?.toString() || undefined,
         deductible: existingPolicy.deductible?.toString() || undefined,
         notes: existingPolicy.notes || undefined,
+        premium_payment_date: (existingPolicy as any).premium_payment_date || undefined,
       });
     }
   }, [existingPolicy]);

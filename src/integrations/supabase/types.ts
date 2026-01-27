@@ -286,6 +286,7 @@ export type Database = {
             | null
           policy_number: string | null
           premium: number | null
+          premium_payment_date: string | null
           product_id: string | null
           start_date: string
           status: Database["public"]["Enums"]["policy_status"] | null
@@ -306,6 +307,7 @@ export type Database = {
             | null
           policy_number?: string | null
           premium?: number | null
+          premium_payment_date?: string | null
           product_id?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["policy_status"] | null
@@ -326,6 +328,7 @@ export type Database = {
             | null
           policy_number?: string | null
           premium?: number | null
+          premium_payment_date?: string | null
           product_id?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["policy_status"] | null
@@ -482,6 +485,9 @@ export type Database = {
         | "semestral"
         | "anual"
         | "unico"
+        | "mensual_10_cuotas"
+        | "mensual_12_cuotas"
+        | "bimensual"
       policy_status:
         | "vigente"
         | "pendiente"
@@ -635,6 +641,9 @@ export const Constants = {
         "semestral",
         "anual",
         "unico",
+        "mensual_10_cuotas",
+        "mensual_12_cuotas",
+        "bimensual",
       ],
       policy_status: [
         "vigente",
