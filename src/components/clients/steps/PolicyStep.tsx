@@ -75,7 +75,7 @@ export function PolicyStep({ data, onChange, insurers, products }: PolicyStepPro
             <SelectTrigger>
               <SelectValue placeholder="Seleccionar aseguradora" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[200]">
               {insurers.map((insurer) => (
                 <SelectItem key={insurer.id} value={insurer.id}>
                   {insurer.name}
@@ -101,7 +101,7 @@ export function PolicyStep({ data, onChange, insurers, products }: PolicyStepPro
                     : 'Seleccionar producto'
               } />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[200]">
               {products.map((product) => (
                 <SelectItem key={product.id} value={product.id}>
                   {product.name}
@@ -131,7 +131,7 @@ export function PolicyStep({ data, onChange, insurers, products }: PolicyStepPro
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[200]">
               <SelectItem value="en_tramite">En trámite</SelectItem>
               <SelectItem value="vigente">Vigente</SelectItem>
               <SelectItem value="pendiente">Pendiente</SelectItem>
@@ -224,7 +224,7 @@ export function PolicyStep({ data, onChange, insurers, products }: PolicyStepPro
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[200]">
               <SelectItem value="mensual">Mensual</SelectItem>
               <SelectItem value="trimestral">Trimestral</SelectItem>
               <SelectItem value="semestral">Semestral</SelectItem>
