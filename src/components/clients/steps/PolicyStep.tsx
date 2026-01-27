@@ -8,17 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Button } from '@/components/ui/button';
-import { CalendarIcon, FileText } from 'lucide-react';
-import { format, parse, addYears } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
+import { FileText } from 'lucide-react';
+import { format, parse, addYears, addMonths, addDays } from 'date-fns';
 import type { PolicyFormData, Insurer, Product } from '../types';
 
 interface PolicyStepProps {
@@ -27,6 +18,42 @@ interface PolicyStepProps {
   insurers: Insurer[];
   products: Product[];
 }
+
+// Calculate next premium payment date based on start date and frequency
+const calculatePremiumPaymentDate = (startDate: string, frequency: string): string => {
+  if (!startDate) return '';
+  
+  const start = parse(startDate, 'yyyy-MM-dd', new Date());
+  const today = new Date();
+  let paymentDate = start;
+  
+  // Calculate interval based on frequency
+  const getNextPaymentDate = (current: Date): Date => {
+    switch (frequency) {
+      case 'mensual':
+      case 'mensual_10_cuotas':
+      case 'mensual_12_cuotas':
+        return addMonths(current, 1);
+      case 'bimensual':
+        return addMonths(current, 2);
+      case 'trimestral':
+        return addMonths(current, 3);
+      case 'semestral':
+        return addMonths(current, 6);
+      case 'anual':
+        return addYears(current, 1);
+      default:
+        return addMonths(current, 1);
+    }
+  };
+  
+  // Find the next payment date that's >= today
+  while (paymentDate < today) {
+    paymentDate = getNextPaymentDate(paymentDate);
+  }
+  
+  return format(paymentDate, 'yyyy-MM-dd');
+};
 
 export function PolicyStep({ data, onChange, insurers, products }: PolicyStepProps) {
   const today = new Date();
@@ -37,22 +64,24 @@ export function PolicyStep({ data, onChange, insurers, products }: PolicyStepPro
     end_date: format(nextYear, 'yyyy-MM-dd'),
     status: 'en_tramite',
     payment_frequency: 'mensual',
+    premium_payment_date: format(today, 'yyyy-MM-dd'),
   };
 
   const updateField = <K extends keyof PolicyFormData>(
     field: K,
     value: PolicyFormData[K]
   ) => {
-    onChange({ ...formData, [field]: value });
+    const newData = { ...formData, [field]: value };
+    
+    // Auto-calculate premium payment date when start_date or payment_frequency changes
+    if (field === 'start_date' || field === 'payment_frequency') {
+      const startDate = field === 'start_date' ? (value as string) : formData.start_date;
+      const frequency = field === 'payment_frequency' ? (value as string) : formData.payment_frequency;
+      newData.premium_payment_date = calculatePremiumPaymentDate(startDate, frequency);
+    }
+    
+    onChange(newData);
   };
-
-  const startDate = formData.start_date
-    ? parse(formData.start_date, 'yyyy-MM-dd', new Date())
-    : undefined;
-
-  const endDate = formData.end_date
-    ? parse(formData.end_date, 'yyyy-MM-dd', new Date())
-    : undefined;
 
   return (
     <div className="space-y-6">
@@ -75,7 +104,7 @@ export function PolicyStep({ data, onChange, insurers, products }: PolicyStepPro
             <SelectTrigger>
               <SelectValue placeholder="Seleccionar aseguradora" />
             </SelectTrigger>
-            <SelectContent className="z-[200]">
+            <SelectContent className="z-[200] bg-background">
               {insurers.map((insurer) => (
                 <SelectItem key={insurer.id} value={insurer.id}>
                   {insurer.name}
@@ -101,7 +130,7 @@ export function PolicyStep({ data, onChange, insurers, products }: PolicyStepPro
                     : 'Seleccionar producto'
               } />
             </SelectTrigger>
-            <SelectContent className="z-[200]">
+            <SelectContent className="z-[200] bg-background">
               {products.map((product) => (
                 <SelectItem key={product.id} value={product.id}>
                   {product.name}
@@ -131,7 +160,7 @@ export function PolicyStep({ data, onChange, insurers, products }: PolicyStepPro
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="z-[200]">
+            <SelectContent className="z-[200] bg-background">
               <SelectItem value="en_tramite">En trámite</SelectItem>
               <SelectItem value="vigente">Vigente</SelectItem>
               <SelectItem value="pendiente">Pendiente</SelectItem>
@@ -141,64 +170,28 @@ export function PolicyStep({ data, onChange, insurers, products }: PolicyStepPro
           </Select>
         </div>
 
-        {/* Dates */}
+        {/* Dates - Manual Input */}
         <div className="space-y-2">
-          <Label>Fecha de inicio *</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  'w-full justify-start text-left font-normal',
-                  !startDate && 'text-muted-foreground'
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {startDate ? format(startDate, 'PPP', { locale: es }) : 'Seleccionar fecha'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={startDate}
-                onSelect={(date) =>
-                  updateField('start_date', date ? format(date, 'yyyy-MM-dd') : '')
-                }
-                initialFocus
-                className={cn('p-3 pointer-events-auto')}
-              />
-            </PopoverContent>
-          </Popover>
+          <Label htmlFor="start_date">Fecha de inicio *</Label>
+          <Input
+            id="start_date"
+            type="date"
+            value={formData.start_date}
+            onChange={(e) => updateField('start_date', e.target.value)}
+            required
+          />
         </div>
 
         <div className="space-y-2">
-          <Label>Fecha de vencimiento *</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  'w-full justify-start text-left font-normal',
-                  !endDate && 'text-muted-foreground'
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {endDate ? format(endDate, 'PPP', { locale: es }) : 'Seleccionar fecha'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={endDate}
-                onSelect={(date) =>
-                  updateField('end_date', date ? format(date, 'yyyy-MM-dd') : '')
-                }
-                disabled={(date) => startDate && date < startDate}
-                initialFocus
-                className={cn('p-3 pointer-events-auto')}
-              />
-            </PopoverContent>
-          </Popover>
+          <Label htmlFor="end_date">Fecha de Renovación de póliza *</Label>
+          <Input
+            id="end_date"
+            type="date"
+            value={formData.end_date}
+            onChange={(e) => updateField('end_date', e.target.value)}
+            min={formData.start_date}
+            required
+          />
         </div>
 
         {/* Financial */}
@@ -224,14 +217,30 @@ export function PolicyStep({ data, onChange, insurers, products }: PolicyStepPro
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="z-[200]">
+            <SelectContent className="z-[200] bg-background">
               <SelectItem value="mensual">Mensual</SelectItem>
+              <SelectItem value="mensual_10_cuotas">Mensual 10 cuotas</SelectItem>
+              <SelectItem value="mensual_12_cuotas">Mensual 12 cuotas</SelectItem>
+              <SelectItem value="bimensual">Bimensual</SelectItem>
               <SelectItem value="trimestral">Trimestral</SelectItem>
               <SelectItem value="semestral">Semestral</SelectItem>
               <SelectItem value="anual">Anual</SelectItem>
-              <SelectItem value="unico">Pago único</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+
+        {/* Premium Payment Date */}
+        <div className="space-y-2">
+          <Label htmlFor="premium_payment_date">Fecha de pago de prima</Label>
+          <Input
+            id="premium_payment_date"
+            type="date"
+            value={formData.premium_payment_date || ''}
+            onChange={(e) => updateField('premium_payment_date', e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Se calcula automáticamente según fecha de inicio y frecuencia de pago
+          </p>
         </div>
 
         <div className="space-y-2">

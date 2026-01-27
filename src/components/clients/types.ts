@@ -23,10 +23,11 @@ export interface PolicyFormData {
   end_date: string;
   status: 'vigente' | 'pendiente' | 'cancelada' | 'vencida' | 'en_tramite';
   premium?: string;
-  payment_frequency: 'mensual' | 'trimestral' | 'semestral' | 'anual' | 'unico';
+  payment_frequency: 'mensual' | 'mensual_10_cuotas' | 'mensual_12_cuotas' | 'bimensual' | 'trimestral' | 'semestral' | 'anual';
   coverage_amount?: string;
   deductible?: string;
   notes?: string;
+  premium_payment_date?: string;
 }
 
 export interface BeneficiaryFormData {

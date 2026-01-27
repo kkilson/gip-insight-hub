@@ -122,6 +122,7 @@ export function ClientFormWizard({ open, onOpenChange }: ClientFormWizardProps) 
           coverage_amount: policyData.coverage_amount ? parseFloat(policyData.coverage_amount) : null,
           deductible: policyData.deductible ? parseFloat(policyData.deductible) : null,
           notes: policyData.notes || null,
+          premium_payment_date: policyData.premium_payment_date || null,
           created_by: user.id,
         })
         .select()
