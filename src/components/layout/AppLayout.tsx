@@ -27,6 +27,7 @@ import {
   BookOpen,
   Target,
   Handshake,
+  ScrollText,
   Menu,
 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
@@ -104,6 +105,12 @@ const navigationItems: NavItem[] = [
     title: 'Alianzas',
     href: '/partnerships',
     icon: Handshake,
+  },
+  {
+    title: 'Auditoría',
+    href: '/audit-logs',
+    icon: ScrollText,
+    roles: ['acceso_total', 'revision_edicion_1'],
   },
 ];
 
