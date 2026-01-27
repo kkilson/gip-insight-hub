@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -13,40 +12,118 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Search, Plus, Users, Loader2, Eye } from 'lucide-react';
+import { Plus, Users, Loader2, Eye } from 'lucide-react';
 import { ClientFormWizard } from '@/components/clients/ClientFormWizard';
+import { ClientEditWizard } from '@/components/clients/ClientEditWizard';
+import { ClientDetailDialog } from '@/components/clients/ClientDetailDialog';
+import { ClientFilters, type ClientFiltersState } from '@/components/clients/ClientFilters';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+const identificationLabels: Record<string, string> = {
+  cedula: 'Cédula',
+  pasaporte: 'Pasaporte',
+  ruc: 'RUC',
+  otro: 'Otro',
+};
+
 export default function Clients() {
-  const [searchTerm, setSearchTerm] = useState('');
   const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [editClientId, setEditClientId] = useState<string | null>(null);
+  const [viewClientId, setViewClientId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<ClientFiltersState>({
+    search: '',
+    insurerId: null,
+    productId: null,
+    status: null,
+    dateFrom: '',
+    dateTo: '',
+  });
 
   const { data: clients, isLoading } = useQuery({
-    queryKey: ['clients'],
+    queryKey: ['clients', filters],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Base query for clients with policies
+      let query = supabase
         .from('clients')
         .select(`
           *,
-          policies:policies(count)
+          policies:policies(
+            id,
+            insurer_id,
+            product_id,
+            status,
+            start_date,
+            end_date
+          )
         `)
         .order('created_at', { ascending: false });
+
+      const { data, error } = await query;
       if (error) throw error;
-      return data;
+
+      // Client-side filtering for advanced filters
+      let filtered = data || [];
+
+      // Search filter
+      if (filters.search) {
+        const search = filters.search.toLowerCase();
+        filtered = filtered.filter(
+          (client) =>
+            client.first_name.toLowerCase().includes(search) ||
+            client.last_name.toLowerCase().includes(search) ||
+            client.identification_number.toLowerCase().includes(search) ||
+            client.email?.toLowerCase().includes(search)
+        );
+      }
+
+      // Insurer filter
+      if (filters.insurerId) {
+        filtered = filtered.filter((client) =>
+          client.policies?.some((p: any) => p.insurer_id === filters.insurerId)
+        );
+      }
+
+      // Product filter
+      if (filters.productId) {
+        filtered = filtered.filter((client) =>
+          client.policies?.some((p: any) => p.product_id === filters.productId)
+        );
+      }
+
+      // Status filter
+      if (filters.status) {
+        filtered = filtered.filter((client) =>
+          client.policies?.some((p: any) => p.status === filters.status)
+        );
+      }
+
+      // Date from filter (policy start date)
+      if (filters.dateFrom) {
+        filtered = filtered.filter((client) =>
+          client.policies?.some((p: any) => p.start_date >= filters.dateFrom)
+        );
+      }
+
+      // Date to filter (policy end date)
+      if (filters.dateTo) {
+        filtered = filtered.filter((client) =>
+          client.policies?.some((p: any) => p.end_date <= filters.dateTo)
+        );
+      }
+
+      return filtered;
     },
   });
 
-  const filteredClients = clients?.filter((client) => {
-    if (!searchTerm) return true;
-    const search = searchTerm.toLowerCase();
-    return (
-      client.first_name.toLowerCase().includes(search) ||
-      client.last_name.toLowerCase().includes(search) ||
-      client.identification_number.toLowerCase().includes(search) ||
-      client.email?.toLowerCase().includes(search)
-    );
-  });
+  const handleViewClient = (clientId: string) => {
+    setViewClientId(clientId);
+  };
+
+  const handleEditClient = (clientId: string) => {
+    setViewClientId(null);
+    setEditClientId(clientId);
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -61,19 +138,7 @@ export default function Clients() {
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="pt-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nombre, cédula o correo..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <ClientFilters filters={filters} onFiltersChange={setFilters} />
 
       {isLoading ? (
         <Card>
@@ -81,7 +146,7 @@ export default function Clients() {
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </CardContent>
         </Card>
-      ) : filteredClients && filteredClients.length > 0 ? (
+      ) : clients && clients.length > 0 ? (
         <Card>
           <CardContent className="p-0">
             <Table>
@@ -96,9 +161,9 @@ export default function Clients() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredClients.map((client) => (
-                  <TableRow key={client.id}>
-                    <TableCell>
+                {clients.map((client) => (
+                  <TableRow key={client.id} className="cursor-pointer hover:bg-muted/50">
+                    <TableCell onClick={() => handleViewClient(client.id)}>
                       <div className="font-medium">
                         {client.first_name} {client.last_name}
                       </div>
@@ -108,30 +173,28 @@ export default function Clients() {
                         </div>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={() => handleViewClient(client.id)}>
                       <div className="text-sm">{client.identification_number}</div>
                       <Badge variant="outline" className="text-xs mt-1">
-                        {client.identification_type === 'cedula' ? 'Cédula' : 
-                         client.identification_type === 'ruc' ? 'RUC' : 
-                         client.identification_type === 'pasaporte' ? 'Pasaporte' : 'Otro'}
+                        {identificationLabels[client.identification_type] || client.identification_type}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={() => handleViewClient(client.id)}>
                       <div className="text-sm">{client.email || '-'}</div>
                       <div className="text-xs text-muted-foreground">
                         {client.mobile || client.phone || '-'}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={() => handleViewClient(client.id)}>
                       <Badge variant="secondary">
-                        {(client.policies as { count: number }[])?.[0]?.count || 0}
+                        {client.policies?.length || 0}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {format(new Date(client.created_at), 'dd MMM yyyy', { locale: es })}
+                      {client.created_at && format(new Date(client.created_at), 'dd MMM yyyy', { locale: es })}
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon" onClick={() => handleViewClient(client.id)}>
                         <Eye className="h-4 w-4" />
                       </Button>
                     </TableCell>
@@ -147,18 +210,34 @@ export default function Clients() {
             <Users className="h-12 w-12 text-muted-foreground/50 mb-4" />
             <h3 className="text-lg font-medium text-foreground">Sin clientes registrados</h3>
             <p className="text-muted-foreground max-w-md">
-              Aún no hay clientes en el sistema. Comienza agregando tu primer cliente
-              con toda su información y pólizas.
+              {filters.search || filters.insurerId || filters.productId || filters.status
+                ? 'No se encontraron clientes con los filtros seleccionados.'
+                : 'Aún no hay clientes en el sistema. Comienza agregando tu primer cliente con toda su información y pólizas.'}
             </p>
-            <Button className="mt-4" onClick={() => setIsWizardOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Agregar primer cliente
-            </Button>
+            {!filters.search && !filters.insurerId && !filters.productId && !filters.status && (
+              <Button className="mt-4" onClick={() => setIsWizardOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Agregar primer cliente
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
 
       <ClientFormWizard open={isWizardOpen} onOpenChange={setIsWizardOpen} />
+      
+      <ClientEditWizard
+        clientId={editClientId}
+        open={!!editClientId}
+        onOpenChange={(open) => !open && setEditClientId(null)}
+      />
+      
+      <ClientDetailDialog
+        clientId={viewClientId}
+        open={!!viewClientId}
+        onOpenChange={(open) => !open && setViewClientId(null)}
+        onEdit={handleEditClient}
+      />
     </div>
   );
 }
