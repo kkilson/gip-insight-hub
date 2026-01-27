@@ -42,13 +42,17 @@ export function ClientFormWizard({ open, onOpenChange }: ClientFormWizardProps) 
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
+  // Only show specific insurers for client registration
+  const allowedInsurerShortNames = ['BMI', 'BUPA', 'Caracas', 'Internacional', 'Mercantil', 'Mercantil Panama', 'Redbridge', 'VUMI'];
+  
   const { data: insurers } = useQuery({
-    queryKey: ['insurers'],
+    queryKey: ['insurers', 'allowed'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('insurers')
         .select('*')
         .eq('is_active', true)
+        .in('short_name', allowedInsurerShortNames)
         .order('name');
       if (error) throw error;
       return data;
