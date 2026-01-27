@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,17 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Button } from '@/components/ui/button';
-import { CalendarIcon, User } from 'lucide-react';
-import { format, parse } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
+import { User } from 'lucide-react';
+import { format } from 'date-fns';
 import type { ClientFormData } from '../types';
 
 interface ClientStepProps {
@@ -49,9 +39,6 @@ export function ClientStep({ data, onChange }: ClientStepProps) {
     onChange({ ...formData, [field]: value });
   };
 
-  const birthDate = formData.birth_date
-    ? parse(formData.birth_date, 'yyyy-MM-dd', new Date())
-    : undefined;
 
   return (
     <div className="space-y-6">
@@ -150,33 +137,14 @@ export function ClientStep({ data, onChange }: ClientStepProps) {
         </div>
 
         <div className="space-y-2">
-          <Label>Fecha de nacimiento</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  'w-full justify-start text-left font-normal',
-                  !birthDate && 'text-muted-foreground'
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {birthDate ? format(birthDate, 'PPP', { locale: es }) : 'Seleccionar fecha'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={birthDate}
-                onSelect={(date) =>
-                  updateField('birth_date', date ? format(date, 'yyyy-MM-dd') : undefined)
-                }
-                disabled={(date) => date > new Date()}
-                initialFocus
-                className={cn('p-3 pointer-events-auto')}
-              />
-            </PopoverContent>
-          </Popover>
+          <Label htmlFor="birth_date">Fecha de nacimiento</Label>
+          <Input
+            id="birth_date"
+            type="date"
+            value={formData.birth_date || ''}
+            onChange={(e) => updateField('birth_date', e.target.value || undefined)}
+            max={format(new Date(), 'yyyy-MM-dd')}
+          />
         </div>
 
         {/* Address */}
