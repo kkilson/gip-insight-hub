@@ -1,222 +1,299 @@
 
+# Plan: Importación Unificada con Número de Póliza como Identificador Único
 
-# Plan de Implementación: Plataforma GIP Asesores Integrales
+## Resumen
 
-## Visión General
-Sistema interno de gestión para centralizar clientes, pólizas, cobranzas y renovaciones, con control de acceso por roles y auditoría completa.
+Rediseñar el sistema de importación masiva para usar una **sola hoja de Excel** donde el **número de póliza** actúa como identificador único. Cada fila del Excel representará una póliza completa con los datos del tomador y opcionalmente múltiples beneficiarios.
 
----
+## Estructura Propuesta del Excel
 
-## Fase 1: Fundamentos y Autenticación
+```text
++----------------+------------------+------------------+------------------+
+|   PÓLIZA       |    TOMADOR       |  BENEFICIARIO 1  |  BENEFICIARIO 2  |
+|  (Columnas)    |   (Columnas)     |   (Columnas)     |   (Columnas)     |
++----------------+------------------+------------------+------------------+
+| Número Póliza  | Cédula Tomador   | Nombre Ben. 1    | Nombre Ben. 2    |
+| Aseguradora    | Nombres          | Apellido Ben. 1  | Apellido Ben. 2  |
+| Producto       | Apellidos        | Parentesco 1     | Parentesco 2     |
+| Fecha Inicio   | Email            | Cédula Ben. 1    | Cédula Ben. 2    |
+| Fecha Fin      | Teléfono         | ...              | ...              |
+| Prima          | Ciudad           |                  |                  |
+| Estado         | Estado           |                  |                  |
++----------------+------------------+------------------+------------------+
+```
 
-### 1.1 Configuración de Backend (Supabase)
-- Conexión con Supabase para base de datos, autenticación y almacenamiento
-- Configuración de políticas de seguridad (RLS)
+## Lógica de Procesamiento
 
-### 1.2 Sistema de Autenticación
-- Página de login con diseño corporativo (colores #182746, #27abe3, #40588c)
-- Autenticación por correo electrónico + contraseña
-- Verificación de dos factores por código de correo
-- Protección de rutas según estado de autenticación
+1. **Número de Póliza como clave principal**
+   - Agrupa filas con el mismo número de póliza
+   - Detecta automáticamente si la póliza ya existe en el sistema
+   - Para pólizas existentes: solo agrega beneficiarios nuevos
+   - Para pólizas nuevas: crea tomador (si no existe), póliza y beneficiarios
 
-### 1.3 Gestión de Roles y Usuarios
-- 4 roles: Acceso total, Revisión y edición 1, Revisión y edición 2, Revisión (solo lectura)
-- Tabla de usuarios con asignación de rol único
-- Usuario sin rol = sin acceso operativo
-- Panel de administración de usuarios (solo Acceso total)
+2. **Detección Inteligente de Tomadores**
+   - Busca primero por cédula del tomador
+   - Si ya existe: reutiliza el registro
+   - Si no existe: crea uno nuevo
 
-### 1.4 Sistema de Auditoría
-- Registro automático de todas las acciones: usuario, fecha, acción, módulo, registro afectado
-- Visualización de logs de auditoría para roles autorizados
+3. **Manejo de Beneficiarios**
+   - Soporta múltiples columnas de beneficiarios (Beneficiario 1, 2, 3, etc.)
+   - Cada fila con el mismo número de póliza puede agregar beneficiarios adicionales
 
----
+## Implementación Técnica
 
-## Fase 2: Dashboard y Navegación
+### 1. Modificar Tipos (`import/types.ts`)
 
-### 2.1 Layout Principal
-- Menú lateral desplegable con hover
-- Header con información del usuario y rol
-- Diseño responsive (desktop-first)
+```typescript
+// Nueva interfaz para fila unificada
+interface UnifiedImportRow {
+  policy_number: string;              // CLAVE ÚNICA
+  
+  // Datos del Tomador
+  client_identification_type?: string;
+  client_identification_number: string;
+  client_first_name: string;
+  client_last_name: string;
+  client_email?: string;
+  client_phone?: string;
+  client_mobile?: string;
+  client_address?: string;
+  client_city?: string;
+  client_province?: string;
+  client_birth_date?: string;
+  
+  // Datos de la Póliza
+  insurer_name?: string;
+  product_name?: string;
+  start_date: string;
+  end_date: string;
+  status?: string;
+  premium?: string;
+  payment_frequency?: string;
+  coverage_amount?: string;
+  deductible?: string;
+  premium_payment_date?: string;
+  policy_notes?: string;
+  
+  // Datos de Beneficiarios (dinámico)
+  beneficiaries: Array<{
+    first_name?: string;
+    last_name?: string;
+    identification_type?: string;
+    identification_number?: string;
+    relationship?: string;
+    birth_date?: string;
+    phone?: string;
+    email?: string;
+  }>;
+}
 
-### 2.2 Dashboard General
-- Bloque de Cobranzas: cantidad pendiente + monto total
-- Bloque de Renovaciones: próximas a vencer + monto total
-- Bloque de Tareas internas
-- Acceso rápido a Base de datos de clientes
-- Gráficos de métricas clave
+// Nuevos campos para mapeo unificado
+const UNIFIED_DB_FIELDS: DBField[] = [
+  // Póliza
+  { value: 'policy_number', label: 'Número de Póliza', required: true, group: 'policy' },
+  { value: 'insurer_name', label: 'Aseguradora', required: false, group: 'policy' },
+  { value: 'product_name', label: 'Producto', required: false, group: 'policy' },
+  { value: 'start_date', label: 'Fecha Inicio', required: true, group: 'policy' },
+  { value: 'end_date', label: 'Fecha Renovación', required: true, group: 'policy' },
+  // ... más campos de póliza
+  
+  // Tomador
+  { value: 'client_identification_number', label: 'Cédula Tomador', required: true, group: 'client' },
+  { value: 'client_first_name', label: 'Nombres Tomador', required: true, group: 'client' },
+  { value: 'client_last_name', label: 'Apellidos Tomador', required: true, group: 'client' },
+  // ... más campos de tomador
+  
+  // Beneficiarios (se detectan por patrón)
+  { value: 'beneficiary_first_name', label: 'Nombres Beneficiario', required: false, group: 'beneficiary' },
+  { value: 'beneficiary_last_name', label: 'Apellidos Beneficiario', required: false, group: 'beneficiary' },
+  { value: 'beneficiary_relationship', label: 'Parentesco', required: false, group: 'beneficiary' },
+  // ... más campos de beneficiario
+];
+```
 
----
+### 2. Nueva Función de Auto-Mapeo (`import/utils.ts`)
 
-## Fase 3: Base de Datos de Clientes (Núcleo)
+```typescript
+function autoMapUnifiedColumns(headers: string[]): ColumnMapping[] {
+  return headers.map((header) => {
+    const h = header.toLowerCase().trim();
+    
+    // Detectar número de beneficiario en el header (ej: "Nombre Beneficiario 1")
+    const beneficiaryMatch = h.match(/beneficiario\s*(\d+)/);
+    const beneficiaryIndex = beneficiaryMatch ? parseInt(beneficiaryMatch[1]) : null;
+    
+    // Campos de Póliza
+    if (h.includes('poliza') || h.includes('póliza')) return { dbField: 'policy_number', beneficiaryIndex: null };
+    if (h.includes('aseguradora')) return { dbField: 'insurer_name', beneficiaryIndex: null };
+    // ... más mapeos de póliza
+    
+    // Campos de Tomador (buscar "tomador" en el header)
+    if (h.includes('tomador') || h.includes('cliente')) {
+      if (h.includes('cedula') || h.includes('cédula')) return { dbField: 'client_identification_number' };
+      if (h.includes('nombre')) return { dbField: 'client_first_name' };
+      if (h.includes('apellido')) return { dbField: 'client_last_name' };
+      // ...
+    }
+    
+    // Campos de Beneficiario (detectar índice)
+    if (beneficiaryIndex !== null) {
+      if (h.includes('nombre')) return { dbField: 'beneficiary_first_name', beneficiaryIndex };
+      if (h.includes('apellido')) return { dbField: 'beneficiary_last_name', beneficiaryIndex };
+      if (h.includes('parentesco')) return { dbField: 'beneficiary_relationship', beneficiaryIndex };
+      // ...
+    }
+    
+    return { excelColumn: header, dbField: null, beneficiaryIndex: null };
+  });
+}
+```
 
-### 3.1 Catálogos Maestros (Precargados)
-- Aseguradoras: BMI, BUPA, Seguros Caracas, La Internacional, Mercantil Venezuela, Redbridge, VUMI
-- Productos por aseguradora
-- Ramos y tipos de póliza
-- Catálogo de Asesores (editable desde Configuración)
+### 3. Proceso de Validación Unificado
 
-### 3.2 Gestión de Clientes - Formulario Guiado
-- Datos del tomador de póliza (nombre, contacto, documentos)
-- Beneficiarios (múltiples por póliza)
-- Información de póliza:
-  - Número de póliza
-  - Empresa aseguradora y producto
-  - Ramo
-  - Fecha de venta y vigencia (cálculo automático)
-  - Deducible: contratado, consumido, disponible
-  - Frecuencia de pago
-  - Prima anual y fraccionada (cálculo automático)
-  - Fecha de pago y renovación
-  - Asesor(es) asignados
+```typescript
+function validateUnifiedImport(
+  rawData: ParsedRow[],
+  columnMappings: ColumnMapping[],
+  existingClients: Client[],
+  existingPolicies: Policy[],
+  insurers: Insurer[],
+  products: Product[]
+): ValidatedUnifiedRow[] {
+  
+  // Agrupar filas por número de póliza
+  const groupedByPolicy = new Map<string, ParsedRow[]>();
+  
+  rawData.forEach(row => {
+    const policyNumber = extractField(row, columnMappings, 'policy_number');
+    if (policyNumber) {
+      const existing = groupedByPolicy.get(policyNumber) || [];
+      existing.push(row);
+      groupedByPolicy.set(policyNumber, existing);
+    }
+  });
+  
+  // Validar cada grupo
+  return Array.from(groupedByPolicy.entries()).map(([policyNumber, rows]) => {
+    const errors: ValidationError[] = [];
+    
+    // Extraer datos del tomador (de la primera fila)
+    const clientData = extractClientData(rows[0], columnMappings);
+    
+    // Verificar si el tomador existe
+    const existingClient = existingClients.find(
+      c => c.identification_number === clientData.identification_number
+    );
+    
+    // Verificar si la póliza existe
+    const existingPolicy = existingPolicies.find(
+      p => p.policy_number === policyNumber
+    );
+    
+    // Extraer todos los beneficiarios de todas las filas
+    const beneficiaries = rows.flatMap(row => 
+      extractBeneficiaries(row, columnMappings)
+    ).filter(b => b.first_name && b.last_name);
+    
+    // Validaciones
+    if (!clientData.identification_number) {
+      errors.push({ field: 'client_identification_number', message: 'Cédula requerida' });
+    }
+    // ... más validaciones
+    
+    return {
+      policyNumber,
+      clientData,
+      policyData: extractPolicyData(rows[0], columnMappings),
+      beneficiaries,
+      existingClientId: existingClient?.id,
+      existingPolicyId: existingPolicy?.id,
+      errors,
+      isValid: errors.length === 0,
+      isUpdate: !!existingPolicy
+    };
+  });
+}
+```
 
-### 3.3 Carga Masiva de Clientes
-- Botón "Descargar plantilla Excel"
-- Plantilla con encabezados, validaciones y catálogos desplegables
-- Subida de archivo con vista previa
-- Procesamiento: carga de filas válidas + reporte de errores
+### 4. Proceso de Importación Secuencial
 
-### 3.4 Exportación de Clientes
-- Opciones: todos, filtrados, seleccionados
-- Formato Excel
+```typescript
+async function executeUnifiedImport(validatedRows: ValidatedUnifiedRow[]) {
+  const results = { created: 0, updated: 0, failed: 0 };
+  
+  for (const row of validatedRows) {
+    try {
+      // 1. Crear o encontrar Tomador
+      let clientId = row.existingClientId;
+      if (!clientId) {
+        const { data } = await supabase.from('clients').insert(row.clientData).select('id').single();
+        clientId = data.id;
+      }
+      
+      // 2. Crear o actualizar Póliza
+      let policyId = row.existingPolicyId;
+      if (policyId) {
+        // Actualizar póliza existente
+        await supabase.from('policies').update(row.policyData).eq('id', policyId);
+        results.updated++;
+      } else {
+        // Crear nueva póliza
+        const { data } = await supabase.from('policies')
+          .insert({ ...row.policyData, client_id: clientId })
+          .select('id').single();
+        policyId = data.id;
+        results.created++;
+      }
+      
+      // 3. Agregar Beneficiarios
+      for (const beneficiary of row.beneficiaries) {
+        await supabase.from('beneficiaries').insert({
+          ...beneficiary,
+          policy_id: policyId
+        });
+      }
+      
+    } catch (error) {
+      results.failed++;
+    }
+  }
+  
+  return results;
+}
+```
 
-### 3.5 Vista de Clientes
-- Tabla dinámica con filtros avanzados
-- Búsqueda por nombre, póliza, aseguradora, asesor
-- Ordenamiento por múltiples columnas
-- Vista de detalle completo de cliente/póliza
+### 5. Interfaz Simplificada del Wizard
 
----
+- **Paso 1**: Subir archivo (una sola hoja)
+- **Paso 2**: Mapear columnas (agrupadas por: Póliza, Tomador, Beneficiarios)
+- **Paso 3**: Vista previa agrupada por número de póliza mostrando:
+  - Pólizas nuevas vs. existentes
+  - Tomadores nuevos vs. existentes
+  - Beneficiarios a agregar
+- **Paso 4**: Ejecutar importación con resumen
 
-## Fase 4: Cobranzas
+### 6. Nueva Plantilla de Ejemplo
 
-### 4.1 Motor de Automatización
-- Detección automática según fecha de pago
-- Frecuencia mensual: alertas a 15, 7, 3 días antes; día de pago; 7-60 días después
-- Otras frecuencias: 45, 30, 15, 7, 3 días antes; día de pago; 7-60 días después
-- Estados: Pendiente, Notificado, Pagado, Vencido
+```text
+| Número Póliza | Aseguradora | Producto | Fecha Inicio | Fecha Fin | Prima | Estado | Cédula Tomador | Nombres Tomador | Apellidos Tomador | Email Tomador | Teléfono Tomador | Nombre Ben. 1 | Apellido Ben. 1 | Parentesco 1 | Cédula Ben. 1 | Nombre Ben. 2 | Apellido Ben. 2 | Parentesco 2 |
+|---------------|-------------|----------|--------------|-----------|-------|--------|----------------|-----------------|-------------------|---------------|------------------|---------------|-----------------|--------------|---------------|---------------|-----------------|--------------|
+| POL-2024-001  | Mercantil   | Global   | 2024-01-01   | 2025-01-01| 1500  | vigente| V-12345678     | Juan            | Pérez             | juan@mail.com | 0412-1234567     | María         | Pérez           | conyuge      | V-87654321    | Carlos        | Pérez           | hijo         |
+| POL-2024-002  | Seguros XYZ | Premium  | 2024-02-01   | 2025-02-01| 2000  | vigente| V-11111111     | Ana             | García            | ana@mail.com  | 0414-9876543     | Pedro         | García          | conyuge      | V-22222222    |               |                 |              |
+```
 
-### 4.2 Editor de Plantillas
-- Editor visual de plantillas de mensajes
-- Variables obligatorias (nombre, monto, fecha, póliza) - no eliminables
-- Plantillas separadas para WhatsApp y correo
+## Archivos a Modificar
 
-### 4.3 Vista de Cobranzas
-- Lista de cobranzas pendientes con filtros por estado, fecha, monto
-- Acciones manuales: marcar pagado, generar PDF, ver historial
-- Alertas visuales según urgencia
+| Archivo | Cambios |
+|---------|---------|
+| `import/types.ts` | Agregar tipos unificados, nuevos campos de mapeo |
+| `import/utils.ts` | Nueva lógica de auto-mapeo, validación unificada, agrupación por póliza |
+| `import/ColumnMappingTable.tsx` | Mostrar campos agrupados (Póliza, Tomador, Beneficiarios) |
+| `ClientImportWizard.tsx` | Simplificar flujo a una sola hoja, nueva UI de preview agrupada |
 
-### 4.4 Generación de PDFs
-- Estados de cuenta individuales
-- Descarga individual o grupal (ZIP)
+## Beneficios
 
----
-
-## Fase 5: Renovaciones
-
-### 5.1 Motor de Renovaciones
-- Identificación automática 30 días antes del vencimiento
-- Alertas internas 7 días antes
-- Campo obligatorio: monto nuevo de la póliza
-
-### 5.2 Resumen Anual de Consumo
-- Número de póliza y beneficiario
-- Listado de usos: tipo, fecha, descripción, monto (Bs/USD)
-- Totales por beneficiario y póliza
-
-### 5.3 PDF Comparativo de Renovación
-- Comparativa año actual vs próximo
-- Desglose completo de coberturas y primas
-- Cambios destacados
-
-### 5.4 Vista de Renovaciones
-- Lista de renovaciones próximas con filtros
-- Estados: Pendiente, En proceso, Renovada, No renovada
-- Acciones: procesar renovación, generar PDF comparativo
-
----
-
-## Fase 6: Funcionalidades Adicionales (Post-MVP)
-
-### 6.1 Cumpleaños
-- Cálculo automático por fecha de nacimiento
-- Plantillas de felicitación
-- Programación de envíos
-
-### 6.2 Finanzas y Administración
-- Registro de ingresos/gastos
-- Presupuestos y planificación
-- Acceso restringido a roles autorizados
-
-### 6.3 Comisiones
-- Desglose por póliza
-- Cálculo de porcentajes: aseguradora, asesor, over agente, over gerente
-- Reportes exportables
-
-### 6.4 Integraciones de Envío
-- WhatsApp Web (vinculación por QR)
-- Outlook/Gmail (envío desde correo designado)
-
-### 6.5 Otras Secciones
-- Cotizaciones y emisiones
-- Cambios administrativos
-- Tutoriales y procesos
-- Ventas y objetivos
-- Alianzas y cupones
-- Tareas internas
-
----
-
-## Diseño UI/UX
-
-### Paleta de Colores
-- Primario: #182746 (azul oscuro)
-- Acento: #27abe3 (azul claro)
-- Secundario: #40588c (azul medio)
-- Fondo: #ffffff
-
-### Principios de Diseño
-- Estilo corporativo, limpio y minimalista
-- Tablas claras con filtros y búsqueda
-- Alertas visuales por urgencia (cobranzas vencidas, renovaciones próximas)
-- Formularios guiados paso a paso
-- Responsive completo (desktop-first)
-
----
-
-## Arquitectura de Datos (Supabase)
-
-### Tablas Principales
-- `users` - Usuarios del sistema
-- `user_roles` - Roles asignados
-- `audit_logs` - Registros de auditoría
-- `clients` - Clientes/tomadores de póliza
-- `policies` - Pólizas
-- `beneficiaries` - Beneficiarios
-- `insurers` - Aseguradoras (catálogo)
-- `products` - Productos por aseguradora
-- `advisors` - Asesores
-- `collections` - Cobranzas
-- `renewals` - Renovaciones
-- `templates` - Plantillas de mensajes
-
-### Seguridad
-- Row Level Security (RLS) por rol
-- Políticas de acceso diferenciadas
-- Auditoría automática en triggers
-
----
-
-## Entregables del MVP
-
-1. ✅ Autenticación segura con verificación por correo
-2. ✅ Sistema de roles (4 niveles) con RLS
-3. ✅ Auditoría completa de acciones
-4. ✅ Dashboard general con métricas
-5. ✅ Base de datos de clientes completa
-6. ✅ Carga masiva desde Excel
-7. ✅ Exportación de datos
-8. ✅ Sistema de cobranzas automatizado
-9. ✅ Sistema de renovaciones
-10. ✅ Generación de PDFs
-11. ✅ Editor de plantillas
-
+1. **Experiencia simplificada**: Un solo archivo, una sola hoja
+2. **Menos errores**: El número de póliza como identificador evita duplicados
+3. **Flexible**: Soporta múltiples beneficiarios por fila
+4. **Inteligente**: Detecta automáticamente registros existentes
+5. **Actualizable**: Permite tanto crear nuevos registros como actualizar existentes
