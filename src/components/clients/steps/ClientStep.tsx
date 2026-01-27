@@ -17,13 +17,6 @@ interface ClientStepProps {
   onChange: (data: ClientFormData) => void;
 }
 
-const provinces = [
-  'Azuay', 'Bolívar', 'Cañar', 'Carchi', 'Chimborazo', 'Cotopaxi',
-  'El Oro', 'Esmeraldas', 'Galápagos', 'Guayas', 'Imbabura', 'Loja',
-  'Los Ríos', 'Manabí', 'Morona Santiago', 'Napo', 'Orellana', 'Pastaza',
-  'Pichincha', 'Santa Elena', 'Santo Domingo', 'Sucumbíos', 'Tungurahua', 'Zamora Chinchipe',
-];
-
 export function ClientStep({ data, onChange }: ClientStepProps) {
   const formData: ClientFormData = data || {
     identification_type: 'cedula',
@@ -58,10 +51,10 @@ export function ClientStep({ data, onChange }: ClientStepProps) {
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[9999] bg-popover border shadow-lg" position="popper" sideOffset={4}>
               <SelectItem value="cedula">Cédula</SelectItem>
               <SelectItem value="pasaporte">Pasaporte</SelectItem>
-              <SelectItem value="ruc">RUC</SelectItem>
+              <SelectItem value="rif">RIF</SelectItem>
               <SelectItem value="otro">Otro</SelectItem>
             </SelectContent>
           </Select>
@@ -165,26 +158,20 @@ export function ClientStep({ data, onChange }: ClientStepProps) {
             id="city"
             value={formData.city || ''}
             onChange={(e) => updateField('city', e.target.value)}
-            placeholder="Ej: Quito"
+            placeholder="Ej: Caracas"
             maxLength={100}
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="province">Provincia</Label>
-          <Select
+          <Label htmlFor="province">Estado</Label>
+          <Input
+            id="province"
             value={formData.province || ''}
-            onValueChange={(v) => updateField('province', v)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Seleccionar provincia" />
-            </SelectTrigger>
-            <SelectContent>
-              {provinces.map((p) => (
-                <SelectItem key={p} value={p}>{p}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onChange={(e) => updateField('province', e.target.value)}
+            placeholder="Ej: Distrito Capital"
+            maxLength={100}
+          />
         </div>
 
         {/* Work info */}

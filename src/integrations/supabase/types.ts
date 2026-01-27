@@ -478,7 +478,7 @@ export type Database = {
         | "revision_edicion_1"
         | "revision_edicion_2"
         | "revision"
-      identification_type: "cedula" | "pasaporte" | "ruc" | "otro"
+      identification_type: "cedula" | "pasaporte" | "ruc" | "otro" | "rif"
       payment_frequency:
         | "mensual"
         | "trimestral"
@@ -501,6 +501,7 @@ export type Database = {
         | "madre"
         | "hermano"
         | "otro"
+        | "tomador_titular"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -634,7 +635,7 @@ export const Constants = {
         "revision_edicion_2",
         "revision",
       ],
-      identification_type: ["cedula", "pasaporte", "ruc", "otro"],
+      identification_type: ["cedula", "pasaporte", "ruc", "otro", "rif"],
       payment_frequency: [
         "mensual",
         "trimestral",
@@ -659,6 +660,7 @@ export const Constants = {
         "madre",
         "hermano",
         "otro",
+        "tomador_titular",
       ],
     },
   },

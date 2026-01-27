@@ -95,16 +95,15 @@ export function PolicyStep({ data, onChange, insurers, products }: PolicyStepPro
         <div className="space-y-2">
           <Label>Aseguradora</Label>
           <Select
-            value={formData.insurer_id || ''}
+            value={formData.insurer_id || undefined}
             onValueChange={(v) => {
-              updateField('insurer_id', v);
-              updateField('product_id', undefined);
+              onChange({ ...formData, insurer_id: v, product_id: undefined });
             }}
           >
             <SelectTrigger>
               <SelectValue placeholder="Seleccionar aseguradora" />
             </SelectTrigger>
-            <SelectContent className="z-[200] bg-background">
+            <SelectContent className="z-[9999] bg-popover border shadow-lg" position="popper" sideOffset={4}>
               {insurers.map((insurer) => (
                 <SelectItem key={insurer.id} value={insurer.id}>
                   {insurer.name}
@@ -130,7 +129,7 @@ export function PolicyStep({ data, onChange, insurers, products }: PolicyStepPro
                     : 'Seleccionar producto'
               } />
             </SelectTrigger>
-            <SelectContent className="z-[200] bg-background">
+            <SelectContent className="z-[9999] bg-popover border shadow-lg" position="popper" sideOffset={4}>
               {products.map((product) => (
                 <SelectItem key={product.id} value={product.id}>
                   {product.name}
@@ -160,7 +159,7 @@ export function PolicyStep({ data, onChange, insurers, products }: PolicyStepPro
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="z-[200] bg-background">
+            <SelectContent className="z-[9999] bg-popover border shadow-lg" position="popper" sideOffset={4}>
               <SelectItem value="en_tramite">En trámite</SelectItem>
               <SelectItem value="vigente">Vigente</SelectItem>
               <SelectItem value="pendiente">Pendiente</SelectItem>
@@ -217,7 +216,7 @@ export function PolicyStep({ data, onChange, insurers, products }: PolicyStepPro
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="z-[200] bg-background">
+            <SelectContent className="z-[9999] bg-popover border shadow-lg" position="popper" sideOffset={4}>
               <SelectItem value="mensual">Mensual</SelectItem>
               <SelectItem value="mensual_10_cuotas">Mensual 10 cuotas</SelectItem>
               <SelectItem value="mensual_12_cuotas">Mensual 12 cuotas</SelectItem>

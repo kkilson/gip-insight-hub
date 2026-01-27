@@ -139,7 +139,7 @@ export function ClientFormWizard({ open, onOpenChange }: ClientFormWizardProps) 
           identification_type: b.identification_type || 'cedula',
           identification_number: b.identification_number || null,
           relationship: b.relationship,
-          percentage: parseFloat(b.percentage),
+          percentage: 100, // Default to 100% since we removed percentage field
           birth_date: b.birth_date || null,
           phone: b.phone || null,
           email: b.email || null,

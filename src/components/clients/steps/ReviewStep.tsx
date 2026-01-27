@@ -17,7 +17,7 @@ interface ReviewStepProps {
 const identificationLabels: Record<string, string> = {
   cedula: 'Cédula',
   pasaporte: 'Pasaporte',
-  ruc: 'RUC',
+  rif: 'RIF',
   otro: 'Otro',
 };
 
@@ -31,13 +31,16 @@ const statusLabels: Record<string, string> = {
 
 const frequencyLabels: Record<string, string> = {
   mensual: 'Mensual',
+  mensual_10_cuotas: 'Mensual 10 cuotas',
+  mensual_12_cuotas: 'Mensual 12 cuotas',
+  bimensual: 'Bimensual',
   trimestral: 'Trimestral',
   semestral: 'Semestral',
   anual: 'Anual',
-  unico: 'Pago único',
 };
 
 const relationshipLabels: Record<string, string> = {
+  tomador_titular: 'Tomador y titular',
   conyuge: 'Cónyuge',
   hijo: 'Hijo/a',
   padre: 'Padre',
@@ -200,7 +203,7 @@ export function ReviewStep({
               {beneficiaries.map((b, index) => (
                 <div key={b.id}>
                   {index > 0 && <Separator className="my-3" />}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-sm">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 text-sm">
                     <div>
                       <span className="text-muted-foreground">Nombre:</span>
                       <p className="font-medium">{b.first_name} {b.last_name}</p>
@@ -208,10 +211,6 @@ export function ReviewStep({
                     <div>
                       <span className="text-muted-foreground">Parentesco:</span>
                       <p className="font-medium">{relationshipLabels[b.relationship]}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Porcentaje:</span>
-                      <p className="font-medium">{b.percentage}%</p>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Cédula:</span>
