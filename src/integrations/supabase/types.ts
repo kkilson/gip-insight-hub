@@ -267,6 +267,116 @@ export type Database = {
           },
         ]
       }
+      collection_history: {
+        Row: {
+          changed_at: string | null
+          changed_by: string | null
+          collection_id: string
+          id: string
+          new_status: Database["public"]["Enums"]["collection_status"]
+          notes: string | null
+          previous_status:
+            | Database["public"]["Enums"]["collection_status"]
+            | null
+        }
+        Insert: {
+          changed_at?: string | null
+          changed_by?: string | null
+          collection_id: string
+          id?: string
+          new_status: Database["public"]["Enums"]["collection_status"]
+          notes?: string | null
+          previous_status?:
+            | Database["public"]["Enums"]["collection_status"]
+            | null
+        }
+        Update: {
+          changed_at?: string | null
+          changed_by?: string | null
+          collection_id?: string
+          id?: string
+          new_status?: Database["public"]["Enums"]["collection_status"]
+          notes?: string | null
+          previous_status?:
+            | Database["public"]["Enums"]["collection_status"]
+            | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_history_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "collections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collections: {
+        Row: {
+          advisor_contacted_at: string | null
+          advisor_notes: string | null
+          amount: number
+          client_id: string
+          created_at: string | null
+          due_date: string
+          id: string
+          paid_at: string | null
+          paid_by: string | null
+          payment_frequency: Database["public"]["Enums"]["payment_frequency"]
+          policy_id: string
+          promised_date: string | null
+          status: Database["public"]["Enums"]["collection_status"]
+          updated_at: string | null
+        }
+        Insert: {
+          advisor_contacted_at?: string | null
+          advisor_notes?: string | null
+          amount: number
+          client_id: string
+          created_at?: string | null
+          due_date: string
+          id?: string
+          paid_at?: string | null
+          paid_by?: string | null
+          payment_frequency: Database["public"]["Enums"]["payment_frequency"]
+          policy_id: string
+          promised_date?: string | null
+          status?: Database["public"]["Enums"]["collection_status"]
+          updated_at?: string | null
+        }
+        Update: {
+          advisor_contacted_at?: string | null
+          advisor_notes?: string | null
+          amount?: number
+          client_id?: string
+          created_at?: string | null
+          due_date?: string
+          id?: string
+          paid_at?: string | null
+          paid_by?: string | null
+          payment_frequency?: Database["public"]["Enums"]["payment_frequency"]
+          policy_id?: string
+          promised_date?: string | null
+          status?: Database["public"]["Enums"]["collection_status"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collections_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collections_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       insurers: {
         Row: {
           address: string | null
@@ -517,6 +627,7 @@ export type Database = {
         | "revision_edicion_1"
         | "revision_edicion_2"
         | "revision"
+      collection_status: "pendiente" | "contacto_asesor" | "cobrada"
       identification_type: "cedula" | "pasaporte" | "ruc" | "otro" | "rif"
       payment_frequency:
         | "mensual"
@@ -674,6 +785,7 @@ export const Constants = {
         "revision_edicion_2",
         "revision",
       ],
+      collection_status: ["pendiente", "contacto_asesor", "cobrada"],
       identification_type: ["cedula", "pasaporte", "ruc", "otro", "rif"],
       payment_frequency: [
         "mensual",
