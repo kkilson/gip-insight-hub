@@ -10,20 +10,20 @@ import {
   Calendar,
   AlertTriangle,
   Clock,
+  Loader2,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useCollectionStats } from '@/hooks/useCollections';
+import { useDashboardStats } from '@/hooks/useDashboardStats';
 
 export default function Dashboard() {
   const { profile } = useAuthContext();
   const navigate = useNavigate();
+  
+  const { data: collectionStats, isLoading: isLoadingCollections } = useCollectionStats();
+  const { data: dashboardStats, isLoading: isLoadingDashboard } = useDashboardStats();
 
-  // Placeholder data - will be replaced with real data from database
-  const stats = {
-    cobranzas: { count: 0, amount: 0, urgent: 0 },
-    renovaciones: { count: 0, amount: 0, thisWeek: 0 },
-    clientes: { count: 0, thisMonth: 0 },
-    tareas: { count: 0, overdue: 0 },
-  };
+  const isLoading = isLoadingCollections || isLoadingDashboard;
 
   return (
     <div className="p-6 lg:p-8 space-y-8">
@@ -49,19 +49,25 @@ export default function Dashboard() {
               Cobranzas Pendientes
             </CardTitle>
             <div className="p-2 bg-warning/10 rounded-lg group-hover:bg-warning/20 transition-colors">
-              <DollarSign className="h-5 w-5 text-warning" />
+              {isLoading ? (
+                <Loader2 className="h-5 w-5 text-warning animate-spin" />
+              ) : (
+                <DollarSign className="h-5 w-5 text-warning" />
+              )}
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats.cobranzas.count}</div>
+            <div className="text-3xl font-bold">
+              {isLoading ? '...' : collectionStats?.totalPending || 0}
+            </div>
             <div className="flex items-center justify-between mt-2">
               <p className="text-sm text-muted-foreground">
-                ${stats.cobranzas.amount.toLocaleString()}
+                ${isLoading ? '...' : (collectionStats?.totalAmount || 0).toLocaleString()}
               </p>
-              {stats.cobranzas.urgent > 0 && (
+              {!isLoading && (collectionStats?.overdue || 0) > 0 && (
                 <span className="flex items-center gap-1 text-xs text-destructive">
                   <AlertTriangle className="h-3 w-3" />
-                  {stats.cobranzas.urgent} urgentes
+                  {collectionStats?.overdue} vencidas
                 </span>
               )}
             </div>
@@ -78,19 +84,25 @@ export default function Dashboard() {
               Próximas Renovaciones
             </CardTitle>
             <div className="p-2 bg-info/10 rounded-lg group-hover:bg-info/20 transition-colors">
-              <RefreshCw className="h-5 w-5 text-info" />
+              {isLoading ? (
+                <Loader2 className="h-5 w-5 text-info animate-spin" />
+              ) : (
+                <RefreshCw className="h-5 w-5 text-info" />
+              )}
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats.renovaciones.count}</div>
+            <div className="text-3xl font-bold">
+              {isLoading ? '...' : dashboardStats?.renovaciones.count || 0}
+            </div>
             <div className="flex items-center justify-between mt-2">
               <p className="text-sm text-muted-foreground">
-                ${stats.renovaciones.amount.toLocaleString()}
+                ${isLoading ? '...' : (dashboardStats?.renovaciones.amount || 0).toLocaleString()}
               </p>
-              {stats.renovaciones.thisWeek > 0 && (
+              {!isLoading && (dashboardStats?.renovaciones.thisWeek || 0) > 0 && (
                 <span className="flex items-center gap-1 text-xs text-info">
                   <Calendar className="h-3 w-3" />
-                  {stats.renovaciones.thisWeek} esta semana
+                  {dashboardStats?.renovaciones.thisWeek} esta semana
                 </span>
               )}
             </div>
@@ -107,17 +119,23 @@ export default function Dashboard() {
               Total Clientes
             </CardTitle>
             <div className="p-2 bg-success/10 rounded-lg group-hover:bg-success/20 transition-colors">
-              <Users className="h-5 w-5 text-success" />
+              {isLoading ? (
+                <Loader2 className="h-5 w-5 text-success animate-spin" />
+              ) : (
+                <Users className="h-5 w-5 text-success" />
+              )}
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats.clientes.count}</div>
+            <div className="text-3xl font-bold">
+              {isLoading ? '...' : dashboardStats?.clientes.total || 0}
+            </div>
             <div className="flex items-center gap-1 mt-2">
-              {stats.clientes.thisMonth > 0 ? (
+              {!isLoading && (dashboardStats?.clientes.thisMonth || 0) > 0 ? (
                 <>
                   <TrendingUp className="h-3 w-3 text-success" />
                   <span className="text-sm text-success">
-                    +{stats.clientes.thisMonth} este mes
+                    +{dashboardStats?.clientes.thisMonth} este mes
                   </span>
                 </>
               ) : (
@@ -143,20 +161,11 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats.tareas.count}</div>
+            <div className="text-3xl font-bold">0</div>
             <div className="flex items-center gap-1 mt-2">
-              {stats.tareas.overdue > 0 ? (
-                <>
-                  <Clock className="h-3 w-3 text-destructive" />
-                  <span className="text-sm text-destructive">
-                    {stats.tareas.overdue} vencidas
-                  </span>
-                </>
-              ) : (
-                <span className="text-sm text-muted-foreground">
-                  Pendientes de completar
-                </span>
-              )}
+              <span className="text-sm text-muted-foreground">
+                Pendientes de completar
+              </span>
             </div>
           </CardContent>
         </Card>
