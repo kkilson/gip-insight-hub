@@ -18,10 +18,10 @@ export const BirthdayCard = forwardRef<HTMLDivElement, BirthdayCardProps>(
           backgroundPosition: 'center',
         }}
       >
-        {/* Client name overlay - positioned after "Sr. (a):" */}
+        {/* Client name overlay - positioned inside the blue shape after "Sr. (a):" */}
         <div 
           className="absolute left-1/2 -translate-x-1/2 text-white font-semibold text-xl"
-          style={{ top: '340px' }}
+          style={{ top: '365px', paddingLeft: '60px' }}
         >
           {clientName}
         </div>
