@@ -45,7 +45,7 @@ export default function Clients() {
   const { data: clients, isLoading } = useQuery({
     queryKey: ['clients', filters],
     queryFn: async () => {
-      // Base query for clients with policies
+      // Base query for clients with policies and advisors
       let query = supabase
         .from('clients')
         .select(`
@@ -56,7 +56,11 @@ export default function Clients() {
             product_id,
             status,
             start_date,
-            end_date
+            end_date,
+            policy_advisors:policy_advisors(
+              advisor_role,
+              advisor:advisors(id, full_name)
+            )
           )
         `)
         .order('created_at', { ascending: false });
@@ -163,6 +167,7 @@ export default function Clients() {
                   <TableHead>Cliente</TableHead>
                   <TableHead>Identificación</TableHead>
                   <TableHead>Contacto</TableHead>
+                  <TableHead>Asesores</TableHead>
                   <TableHead>Pólizas</TableHead>
                   <TableHead>Registro</TableHead>
                   <TableHead className="w-[80px]"></TableHead>
@@ -192,6 +197,32 @@ export default function Clients() {
                       <div className="text-xs text-muted-foreground">
                         {client.mobile || client.phone || '-'}
                       </div>
+                    </TableCell>
+                    <TableCell onClick={() => handleViewClient(client.id)}>
+                      {(() => {
+                        // Get unique advisors from all policies
+                        const advisors = new Set<string>();
+                        client.policies?.forEach((p: any) => {
+                          p.policy_advisors?.forEach((pa: any) => {
+                            if (pa.advisor?.full_name) {
+                              advisors.add(pa.advisor.full_name);
+                            }
+                          });
+                        });
+                        const advisorList = Array.from(advisors);
+                        return advisorList.length > 0 ? (
+                          <div className="space-y-1">
+                            {advisorList.slice(0, 2).map((name, i) => (
+                              <div key={i} className="text-xs text-muted-foreground">{name}</div>
+                            ))}
+                            {advisorList.length > 2 && (
+                              <div className="text-xs text-muted-foreground">+{advisorList.length - 2} más</div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell onClick={() => handleViewClient(client.id)}>
                       <Badge variant="secondary">
