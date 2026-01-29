@@ -3,25 +3,27 @@ import { es } from 'date-fns/locale';
 import { Collection } from '@/hooks/useCollections';
 import { BrokerSettings, getLogoBase64 } from '@/hooks/useBrokerSettings';
 
-// GIP Corporate Colors
+// GIP Corporate Colors - Refined palette
 const GIP_COLORS = {
-  primary: '#182746',   // Dark blue
-  accent: '#27abe3',    // Light blue
-  secondary: '#40588c', // Medium blue
-  text: '#1a1a1a',      // Near black
-  lightGray: '#f8f9fa',
+  primary: '#182746',    // Dark blue - headers, titles
+  accent: '#27abe3',     // Light blue - dividers, accents
+  secondary: '#40588c',  // Medium blue - table headers
+  text: '#2d3748',       // Softer black for body text
+  muted: '#64748b',      // Muted text for secondary info
+  lightGray: '#f8fafc',  // Very light background
+  border: '#e2e8f0',     // Subtle borders
   white: '#ffffff',
 };
 
 const paymentFrequencyLabels: Record<string, string> = {
-  mensual: 'MENSUAL',
-  mensual_10_cuotas: 'MENSUAL (10 CUOTAS)',
-  mensual_12_cuotas: 'MENSUAL (12 CUOTAS)',
-  bimensual: 'BIMENSUAL',
-  trimestral: 'TRIMESTRAL',
-  semestral: 'SEMESTRAL',
-  anual: 'ANUAL',
-  unico: 'PAGO ÚNICO',
+  mensual: 'Mensual',
+  mensual_10_cuotas: 'Mensual (10 cuotas)',
+  mensual_12_cuotas: 'Mensual (12 cuotas)',
+  bimensual: 'Bimensual',
+  trimestral: 'Trimestral',
+  semestral: 'Semestral',
+  anual: 'Anual',
+  unico: 'Pago Único',
 };
 
 function formatCurrency(amount: number): string {
@@ -46,7 +48,7 @@ export async function generatePremiumNoticePdf(
   const productName = collection.policy?.product?.name || '';
   const productCategory = collection.policy?.product?.category || '';
   const planProduct = [productName, productCategory].filter(Boolean).join(' - ') || 'Sin producto';
-  const frequency = paymentFrequencyLabels[collection.payment_frequency] || collection.payment_frequency.toUpperCase();
+  const frequency = paymentFrequencyLabels[collection.payment_frequency] || collection.payment_frequency;
   const amount = formatCurrency(collection.amount);
   const dueDate = formatDateLong(collection.due_date);
   const today = format(new Date(), "d 'de' MMMM 'de' yyyy", { locale: es });
@@ -63,15 +65,12 @@ export async function generatePremiumNoticePdf(
   if (brokerSettings?.logo_url) {
     const logoBase64 = await getLogoBase64(brokerSettings.logo_url);
     if (logoBase64) {
-      logoHtml = `<img src="${logoBase64}" alt="Logo" style="max-height: 80px; max-width: 200px; object-fit: contain;" />`;
+      logoHtml = `<img src="${logoBase64}" alt="Logo" class="logo" />`;
     }
   }
 
   // Build contact footer items
-  const contactItems = [
-    brokerEmail,
-    brokerPhone,
-  ].filter(Boolean);
+  const contactItems = [brokerEmail, brokerPhone].filter(Boolean);
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -89,41 +88,48 @@ export async function generatePremiumNoticePdf(
         
         @page {
           size: letter;
-          margin: 1in;
+          margin: 0.75in 1in;
         }
         
         body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          font-size: 11pt;
-          line-height: 1.6;
+          font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+          font-size: 10.5pt;
+          line-height: 1.7;
           color: ${GIP_COLORS.text};
           background: ${GIP_COLORS.white};
+          -webkit-font-smoothing: antialiased;
         }
         
         .container {
-          max-width: 700px;
+          max-width: 640px;
           margin: 0 auto;
-          padding: 20px;
+          padding: 40px;
         }
         
-        /* Header */
+        /* Header - Clean and balanced */
         .header {
           display: flex;
           justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 8px;
+          align-items: center;
+          padding-bottom: 20px;
+          border-bottom: 1px solid ${GIP_COLORS.accent};
+          margin-bottom: 32px;
         }
         
         .logo-section {
-          flex: 1;
+          flex: 0 0 auto;
+        }
+        
+        .logo {
+          max-height: 56px;
+          max-width: 180px;
+          object-fit: contain;
         }
         
         .logo-placeholder {
-          width: 200px;
-          height: 80px;
-          display: flex;
-          align-items: center;
-          justify-content: flex-start;
+          font-size: 9pt;
+          color: ${GIP_COLORS.muted};
+          font-style: italic;
         }
         
         .title-section {
@@ -131,132 +137,161 @@ export async function generatePremiumNoticePdf(
         }
         
         .title {
-          font-size: 24pt;
-          font-weight: bold;
+          font-size: 22pt;
+          font-weight: 600;
           color: ${GIP_COLORS.primary};
-          letter-spacing: 1px;
+          letter-spacing: 0.5px;
+          margin: 0;
         }
         
-        .divider {
-          height: 3px;
-          background: ${GIP_COLORS.accent};
-          margin: 15px 0 25px 0;
-        }
-        
-        /* Date */
+        /* Date line */
         .date-line {
           text-align: right;
-          margin-bottom: 30px;
-          color: ${GIP_COLORS.text};
+          color: ${GIP_COLORS.muted};
+          font-size: 10pt;
+          margin-bottom: 28px;
         }
         
         /* Greeting */
         .greeting {
-          margin-bottom: 25px;
+          margin-bottom: 20px;
+          font-size: 11pt;
         }
         
         .greeting strong {
           color: ${GIP_COLORS.primary};
-        }
-        
-        /* Intro text */
-        .intro-text {
-          margin-bottom: 30px;
-          text-align: justify;
-        }
-        
-        /* Policy Data Table */
-        .policy-table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-bottom: 30px;
-          border: 1px solid ${GIP_COLORS.secondary};
-        }
-        
-        .policy-table th {
-          background: ${GIP_COLORS.secondary};
-          color: ${GIP_COLORS.white};
-          padding: 12px 15px;
-          text-align: left;
-          font-size: 12pt;
           font-weight: 600;
         }
         
-        .policy-table td {
-          padding: 10px 15px;
-          border-bottom: 1px solid #e0e0e0;
+        /* Body text */
+        .intro-text {
+          margin-bottom: 28px;
+          text-align: justify;
+          color: ${GIP_COLORS.text};
         }
         
-        .policy-table tr:last-child td {
+        /* Policy Data Table - Clean VUMI style */
+        .policy-section {
+          margin-bottom: 28px;
+        }
+        
+        .policy-header {
+          background: ${GIP_COLORS.secondary};
+          color: ${GIP_COLORS.white};
+          padding: 10px 16px;
+          font-size: 11pt;
+          font-weight: 500;
+          letter-spacing: 0.3px;
+          border-radius: 4px 4px 0 0;
+        }
+        
+        .policy-table {
+          width: 100%;
+          border-collapse: collapse;
+          background: ${GIP_COLORS.white};
+          border: 1px solid ${GIP_COLORS.border};
+          border-top: none;
+          border-radius: 0 0 4px 4px;
+        }
+        
+        .policy-table tr {
+          border-bottom: 1px solid ${GIP_COLORS.border};
+        }
+        
+        .policy-table tr:last-child {
           border-bottom: none;
+        }
+        
+        .policy-table tr:nth-child(even) {
+          background: ${GIP_COLORS.lightGray};
+        }
+        
+        .policy-table td {
+          padding: 10px 16px;
+          vertical-align: middle;
         }
         
         .policy-table .label {
           width: 45%;
           font-weight: 500;
           color: ${GIP_COLORS.primary};
-          background: ${GIP_COLORS.lightGray};
+          font-size: 10pt;
         }
         
         .policy-table .value {
           width: 55%;
           color: ${GIP_COLORS.text};
+          font-size: 10pt;
         }
         
-        .policy-table .amount {
+        .policy-table .value strong {
+          font-weight: 600;
+        }
+        
+        /* Highlighted amount row */
+        .policy-table .amount-row {
+          background: linear-gradient(135deg, ${GIP_COLORS.primary}08 0%, ${GIP_COLORS.accent}08 100%) !important;
+        }
+        
+        .policy-table .amount-value {
           font-size: 13pt;
-          font-weight: bold;
+          font-weight: 700;
           color: ${GIP_COLORS.primary};
         }
         
         /* Additional text */
         .additional-text {
-          margin-bottom: 30px;
+          margin-bottom: 36px;
           text-align: justify;
+          color: ${GIP_COLORS.text};
         }
         
         /* Signature */
         .signature {
-          margin-top: 40px;
-          margin-bottom: 50px;
+          margin-bottom: 40px;
         }
         
         .signature-greeting {
-          margin-bottom: 20px;
+          margin-bottom: 8px;
+          color: ${GIP_COLORS.text};
         }
         
         .signature-name {
-          font-weight: bold;
+          font-weight: 600;
           color: ${GIP_COLORS.primary};
-          font-size: 12pt;
+          font-size: 11pt;
+          margin-bottom: 2px;
         }
         
         .signature-id {
-          font-size: 10pt;
-          color: #666;
+          font-size: 9.5pt;
+          color: ${GIP_COLORS.muted};
         }
         
-        /* Footer */
-        .footer-divider {
-          height: 2px;
-          background: ${GIP_COLORS.accent};
-          margin: 30px 0 15px 0;
-        }
-        
+        /* Footer - Minimal and elegant */
         .footer {
+          padding-top: 20px;
+          border-top: 1px solid ${GIP_COLORS.accent};
           text-align: center;
-          font-size: 9pt;
-          color: #666;
         }
         
         .footer-contact {
-          margin-bottom: 5px;
+          font-size: 9pt;
+          color: ${GIP_COLORS.muted};
+          margin-bottom: 4px;
+        }
+        
+        .footer-contact span {
+          margin: 0 8px;
         }
         
         .footer-address {
-          color: #888;
+          font-size: 8.5pt;
+          color: ${GIP_COLORS.muted};
+          opacity: 0.8;
         }
         
+        /* Print optimizations */
         @media print {
           body {
             -webkit-print-color-adjust: exact !important;
@@ -265,6 +300,13 @@ export async function generatePremiumNoticePdf(
           
           .container {
             padding: 0;
+            max-width: none;
+          }
+          
+          .policy-table tr:nth-child(even),
+          .policy-table .amount-row {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
         }
       </style>
@@ -272,89 +314,81 @@ export async function generatePremiumNoticePdf(
     <body>
       <div class="container">
         <!-- Header -->
-        <div class="header">
+        <header class="header">
           <div class="logo-section">
-            <div class="logo-placeholder">
-              ${logoHtml || `<span style="color: #999; font-size: 10pt;">Logo no configurado</span>`}
-            </div>
+            ${logoHtml || `<span class="logo-placeholder">Logo no configurado</span>`}
           </div>
           <div class="title-section">
-            <div class="title">AVISO DE PRIMA</div>
+            <h1 class="title">AVISO DE PRIMA</h1>
           </div>
-        </div>
-        
-        <!-- Divider -->
-        <div class="divider"></div>
+        </header>
         
         <!-- Date -->
         <div class="date-line">${today}</div>
         
         <!-- Greeting -->
-        <div class="greeting">
+        <p class="greeting">
           Estimado(a) <strong>${clientName}</strong>,
-        </div>
+        </p>
         
         <!-- Intro text -->
-        <div class="intro-text">
+        <p class="intro-text">
           Le informamos que se acerca la fecha de vencimiento de la prima correspondiente a su póliza de seguro.
           A continuación, encontrará los detalles de su próximo pago:
+        </p>
+        
+        <!-- Policy Data Section -->
+        <div class="policy-section">
+          <div class="policy-header">Datos de la Póliza</div>
+          <table class="policy-table">
+            <tbody>
+              <tr>
+                <td class="label">Número de Póliza</td>
+                <td class="value"><strong>${policyNumber}</strong></td>
+              </tr>
+              <tr>
+                <td class="label">Aseguradora</td>
+                <td class="value">${insurerName}</td>
+              </tr>
+              <tr>
+                <td class="label">Plan / Producto</td>
+                <td class="value">${planProduct}</td>
+              </tr>
+              <tr>
+                <td class="label">Frecuencia de Pago</td>
+                <td class="value">${frequency}</td>
+              </tr>
+              <tr class="amount-row">
+                <td class="label">Monto de la Prima</td>
+                <td class="value amount-value">${amount}</td>
+              </tr>
+              <tr>
+                <td class="label">Fecha del Próximo Pago</td>
+                <td class="value"><strong>${dueDate}</strong></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
         
-        <!-- Policy Data Table -->
-        <table class="policy-table">
-          <thead>
-            <tr>
-              <th colspan="2">Datos de la Póliza</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td class="label">Número de Póliza:</td>
-              <td class="value"><strong>${policyNumber}</strong></td>
-            </tr>
-            <tr>
-              <td class="label">Aseguradora:</td>
-              <td class="value">${insurerName}</td>
-            </tr>
-            <tr>
-              <td class="label">Plan / Producto:</td>
-              <td class="value">${planProduct}</td>
-            </tr>
-            <tr>
-              <td class="label">Frecuencia de Pago:</td>
-              <td class="value">${frequency}</td>
-            </tr>
-            <tr>
-              <td class="label">Monto de la Prima:</td>
-              <td class="value amount">${amount}</td>
-            </tr>
-            <tr>
-              <td class="label">Fecha del Próximo Pago:</td>
-              <td class="value"><strong>${dueDate}</strong></td>
-            </tr>
-          </tbody>
-        </table>
-        
         <!-- Additional text -->
-        <div class="additional-text">
+        <p class="additional-text">
           Le agradecemos realizar el pago antes de la fecha indicada para mantener la vigencia de su póliza 
           y garantizar la continuidad de su cobertura. Si tiene alguna pregunta o requiere asistencia, 
           no dude en contactarnos.
-        </div>
+        </p>
         
         <!-- Signature -->
         <div class="signature">
-          <div class="signature-greeting">Saludos cordiales,</div>
-          <div class="signature-name">${brokerName}</div>
-          ${brokerId ? `<div class="signature-id">${brokerId}</div>` : ''}
+          <p class="signature-greeting">Saludos cordiales,</p>
+          <p class="signature-name">${brokerName}</p>
+          ${brokerId ? `<p class="signature-id">${brokerId}</p>` : ''}
         </div>
         
         <!-- Footer -->
-        <div class="footer-divider"></div>
-        <div class="footer">
-          ${contactItems.length > 0 ? `<div class="footer-contact">${contactItems.join(' · ')}</div>` : ''}
-          ${brokerAddress ? `<div class="footer-address">${brokerAddress}</div>` : ''}
-        </div>
+        <footer class="footer">
+          ${contactItems.length > 0 ? `<p class="footer-contact">${contactItems.map(item => `<span>${item}</span>`).join('·')}</p>` : ''}
+          ${brokerAddress ? `<p class="footer-address">${brokerAddress}</p>` : ''}
+        </footer>
       </div>
     </body>
     </html>
