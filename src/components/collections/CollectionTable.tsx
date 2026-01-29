@@ -22,10 +22,11 @@ import {
   calculateDaysOverdue,
   CollectionStatus 
 } from '@/hooks/useCollections';
-import { MoreHorizontal, Check, PhoneCall, Undo2, Eye } from 'lucide-react';
+import { MoreHorizontal, Check, PhoneCall, Undo2, Eye, FileText } from 'lucide-react';
 import { MarkAsPaidDialog } from './MarkAsPaidDialog';
 import { AdvisorContactDialog } from './AdvisorContactDialog';
 import { CollectionDetailDialog } from './CollectionDetailDialog';
+import { generatePremiumNoticePdf } from './generatePremiumNoticePdf';
 
 interface CollectionTableProps {
   collections: Collection[];
@@ -208,6 +209,12 @@ export function CollectionTable({ collections, isLoading }: CollectionTableProps
                         >
                           <Eye className="mr-2 h-4 w-4" />
                           Ver detalles
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => generatePremiumNoticePdf(collection)}
+                        >
+                          <FileText className="mr-2 h-4 w-4" />
+                          Aviso de Prima
                         </DropdownMenuItem>
                         {collection.status !== 'cobrada' && (
                           <>

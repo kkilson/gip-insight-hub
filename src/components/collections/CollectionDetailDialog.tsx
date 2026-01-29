@@ -7,10 +7,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Collection, calculateDaysOverdue, CollectionStatus } from '@/hooks/useCollections';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { FileText } from 'lucide-react';
+import { generatePremiumNoticePdf } from './generatePremiumNoticePdf';
 
 interface CollectionDetailDialogProps {
   collection: Collection;
@@ -64,7 +67,18 @@ export function CollectionDetailDialog({ collection, open, onOpenChange }: Colle
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Detalle de Cobranza</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle>Detalle de Cobranza</DialogTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => generatePremiumNoticePdf(collection)}
+              className="mr-6"
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Aviso de Prima
+            </Button>
+          </div>
         </DialogHeader>
 
         <div className="space-y-6">
