@@ -1,1 +1,4 @@
 project_id = "hkibwnqcoioxzygqzlfq"
+
+[functions.process-renewals]
+verify_jwt = false

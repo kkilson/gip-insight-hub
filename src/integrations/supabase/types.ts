@@ -543,6 +543,82 @@ export type Database = {
           },
         ]
       }
+      policy_consumptions: {
+        Row: {
+          amount_bs: number | null
+          amount_usd: number | null
+          beneficiary_id: string | null
+          beneficiary_name: string | null
+          created_at: string
+          created_by: string | null
+          deleted: boolean
+          deleted_at: string | null
+          deleted_by: string | null
+          description: string
+          id: string
+          policy_id: string
+          updated_at: string
+          usage_date: string
+          usage_type_id: string
+        }
+        Insert: {
+          amount_bs?: number | null
+          amount_usd?: number | null
+          beneficiary_id?: string | null
+          beneficiary_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted?: boolean
+          deleted_at?: string | null
+          deleted_by?: string | null
+          description: string
+          id?: string
+          policy_id: string
+          updated_at?: string
+          usage_date: string
+          usage_type_id: string
+        }
+        Update: {
+          amount_bs?: number | null
+          amount_usd?: number | null
+          beneficiary_id?: string | null
+          beneficiary_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted?: boolean
+          deleted_at?: string | null
+          deleted_by?: string | null
+          description?: string
+          id?: string
+          policy_id?: string
+          updated_at?: string
+          usage_date?: string
+          usage_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_consumptions_beneficiary_id_fkey"
+            columns: ["beneficiary_id"]
+            isOneToOne: false
+            referencedRelation: "beneficiaries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_consumptions_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_consumptions_usage_type_id_fkey"
+            columns: ["usage_type_id"]
+            isOneToOne: false
+            referencedRelation: "usage_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category: string | null
@@ -611,6 +687,98 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      renewal_configs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          current_amount: number
+          difference: number | null
+          email_sent: boolean
+          email_sent_at: string | null
+          id: string
+          new_amount: number | null
+          notes: string | null
+          pdf_generated: boolean
+          pdf_path: string | null
+          percentage: number | null
+          policy_id: string
+          renewal_date: string
+          scheduled_send_date: string | null
+          status: Database["public"]["Enums"]["renewal_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          current_amount: number
+          difference?: number | null
+          email_sent?: boolean
+          email_sent_at?: string | null
+          id?: string
+          new_amount?: number | null
+          notes?: string | null
+          pdf_generated?: boolean
+          pdf_path?: string | null
+          percentage?: number | null
+          policy_id: string
+          renewal_date: string
+          scheduled_send_date?: string | null
+          status?: Database["public"]["Enums"]["renewal_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          current_amount?: number
+          difference?: number | null
+          email_sent?: boolean
+          email_sent_at?: string | null
+          id?: string
+          new_amount?: number | null
+          notes?: string | null
+          pdf_generated?: boolean
+          pdf_path?: string | null
+          percentage?: number | null
+          policy_id?: string
+          renewal_date?: string
+          scheduled_send_date?: string | null
+          status?: Database["public"]["Enums"]["renewal_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "renewal_configs_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_types: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -688,6 +856,12 @@ export type Database = {
         | "hermano"
         | "otro"
         | "tomador_titular"
+      renewal_status:
+        | "pendiente"
+        | "programada"
+        | "enviada"
+        | "error"
+        | "completada"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -848,6 +1022,13 @@ export const Constants = {
         "hermano",
         "otro",
         "tomador_titular",
+      ],
+      renewal_status: [
+        "pendiente",
+        "programada",
+        "enviada",
+        "error",
+        "completada",
       ],
     },
   },
