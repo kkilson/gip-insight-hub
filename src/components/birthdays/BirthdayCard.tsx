@@ -18,6 +18,14 @@ export const BirthdayCard = forwardRef<HTMLDivElement, BirthdayCardProps>(
           backgroundPosition: 'center',
         }}
       >
+        {/* Client name overlay - positioned after "¡Feliz Cumpleaños!" greeting */}
+        <div 
+          className="absolute left-1/2 -translate-x-1/2 text-white font-bold text-2xl text-center"
+          style={{ top: '320px' }}
+        >
+          {clientName}
+        </div>
+
         {/* Advisor name overlay - positioned below "Cordialmente:" on the signature line */}
         <div 
           className="absolute left-1/2 -translate-x-1/2 text-white font-medium text-lg"
