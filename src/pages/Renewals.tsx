@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RefreshCw, FileSpreadsheet, Plus, Receipt, Upload } from 'lucide-react';
+import { RefreshCw, FileSpreadsheet, Plus, Receipt, Upload, BarChart3 } from 'lucide-react';
 import { RenewalStats } from '@/components/renewals/RenewalStats';
 import { RenewalFilters } from '@/components/renewals/RenewalFilters';
 import { RenewalTable } from '@/components/renewals/RenewalTable';
@@ -12,6 +12,7 @@ import { ConsumptionTable } from '@/components/consumptions/ConsumptionTable';
 import { ConsumptionFormDialog } from '@/components/consumptions/ConsumptionFormDialog';
 import { ConsumptionSummaryCard } from '@/components/consumptions/ConsumptionSummaryCard';
 import { ConsumptionImportWizard } from '@/components/consumptions/import/ConsumptionImportWizard';
+import { ConsumptionReport } from '@/components/consumptions/ConsumptionReport';
 import { generateRenewalPdf, ConsumptionDetail } from '@/components/renewals/generateRenewalPdf';
 import { 
   useRenewalPolicies, 
@@ -232,6 +233,10 @@ export default function Renewals() {
             <Receipt className="h-4 w-4" />
             Consumos
           </TabsTrigger>
+          <TabsTrigger value="reports" className="gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Reportes
+          </TabsTrigger>
         </TabsList>
 
         {/* Renewals Tab */}
@@ -319,6 +324,18 @@ export default function Renewals() {
               />
             </div>
           </div>
+        </TabsContent>
+
+        {/* Reports Tab */}
+        <TabsContent value="reports" className="space-y-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-medium">Reporte de Consumos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ConsumptionReport />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
