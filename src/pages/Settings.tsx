@@ -21,7 +21,8 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Shield, Users, Loader2, UserPlus, Trash2 } from 'lucide-react';
+import { Shield, Users, Loader2 } from 'lucide-react';
+import { BrokerSettingsSection } from '@/components/settings/BrokerSettingsSection';
 import type { Database } from '@/integrations/supabase/types';
 
 type AppRole = Database['public']['Enums']['app_role'];
@@ -222,7 +223,12 @@ export default function Settings() {
         <h1 className="text-2xl font-bold text-foreground">Configuración</h1>
         <p className="text-muted-foreground">Administración del sistema</p>
       </div>
-        <Card>
+
+      {/* Broker Settings Section */}
+      <BrokerSettingsSection />
+
+      {/* User Management */}
+      <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-accent" />

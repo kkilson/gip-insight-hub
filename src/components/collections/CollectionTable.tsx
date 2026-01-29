@@ -22,6 +22,7 @@ import {
   calculateDaysOverdue,
   CollectionStatus 
 } from '@/hooks/useCollections';
+import { useBrokerSettings } from '@/hooks/useBrokerSettings';
 import { MoreHorizontal, Check, PhoneCall, Undo2, Eye, FileText } from 'lucide-react';
 import { MarkAsPaidDialog } from './MarkAsPaidDialog';
 import { AdvisorContactDialog } from './AdvisorContactDialog';
@@ -86,6 +87,11 @@ export function CollectionTable({ collections, isLoading }: CollectionTableProps
   const [showPaidDialog, setShowPaidDialog] = useState(false);
   const [showAdvisorDialog, setShowAdvisorDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const { settings: brokerSettings } = useBrokerSettings();
+
+  const handleGeneratePdf = async (collection: Collection) => {
+    await generatePremiumNoticePdf(collection, brokerSettings);
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-VE', {
@@ -211,7 +217,7 @@ export function CollectionTable({ collections, isLoading }: CollectionTableProps
                           Ver detalles
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => generatePremiumNoticePdf(collection)}
+                          onClick={() => handleGeneratePdf(collection)}
                         >
                           <FileText className="mr-2 h-4 w-4" />
                           Aviso de Prima

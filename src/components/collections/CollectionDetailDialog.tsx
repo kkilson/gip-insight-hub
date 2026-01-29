@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Collection, calculateDaysOverdue, CollectionStatus } from '@/hooks/useCollections';
+import { useBrokerSettings } from '@/hooks/useBrokerSettings';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { FileText } from 'lucide-react';
@@ -38,6 +39,8 @@ const paymentFrequencyLabels: Record<string, string> = {
 };
 
 export function CollectionDetailDialog({ collection, open, onOpenChange }: CollectionDetailDialogProps) {
+  const { settings: brokerSettings } = useBrokerSettings();
+
   const { data: history } = useQuery({
     queryKey: ['collection-history', collection.id],
     queryFn: async () => {
@@ -52,6 +55,10 @@ export function CollectionDetailDialog({ collection, open, onOpenChange }: Colle
     },
     enabled: open,
   });
+
+  const handleGeneratePdf = async () => {
+    await generatePremiumNoticePdf(collection, brokerSettings);
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-VE', {
@@ -72,7 +79,7 @@ export function CollectionDetailDialog({ collection, open, onOpenChange }: Colle
             <Button
               variant="outline"
               size="sm"
-              onClick={() => generatePremiumNoticePdf(collection)}
+              onClick={handleGeneratePdf}
               className="mr-6"
             >
               <FileText className="mr-2 h-4 w-4" />
