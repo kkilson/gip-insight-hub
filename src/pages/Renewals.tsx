@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RefreshCw, FileSpreadsheet, Plus, Receipt } from 'lucide-react';
+import { RefreshCw, FileSpreadsheet, Plus, Receipt, Upload } from 'lucide-react';
 import { RenewalStats } from '@/components/renewals/RenewalStats';
 import { RenewalFilters } from '@/components/renewals/RenewalFilters';
 import { RenewalTable } from '@/components/renewals/RenewalTable';
@@ -11,6 +11,7 @@ import { ConsumptionFilters } from '@/components/consumptions/ConsumptionFilters
 import { ConsumptionTable } from '@/components/consumptions/ConsumptionTable';
 import { ConsumptionFormDialog } from '@/components/consumptions/ConsumptionFormDialog';
 import { ConsumptionSummaryCard } from '@/components/consumptions/ConsumptionSummaryCard';
+import { ConsumptionImportWizard } from '@/components/consumptions/import/ConsumptionImportWizard';
 import { generateRenewalPdf, ConsumptionDetail } from '@/components/renewals/generateRenewalPdf';
 import { 
   useRenewalPolicies, 
@@ -42,6 +43,7 @@ export default function Renewals() {
   const [consumptionFilters, setConsumptionFilters] = useState<ConsumptionFilterType>({});
   const [selectedConsumption, setSelectedConsumption] = useState<Consumption | null>(null);
   const [consumptionDialogOpen, setConsumptionDialogOpen] = useState(false);
+  const [consumptionImportOpen, setConsumptionImportOpen] = useState(false);
   const [summaryPolicyId, setSummaryPolicyId] = useState<string | null>(null);
 
   // Queries
@@ -276,6 +278,10 @@ export default function Renewals() {
                       <RefreshCw className="h-4 w-4 mr-2" />
                       Actualizar
                     </Button>
+                    <Button variant="outline" size="sm" onClick={() => setConsumptionImportOpen(true)}>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Importar
+                    </Button>
                     <Button size="sm" onClick={handleNewConsumption}>
                       <Plus className="h-4 w-4 mr-2" />
                       Nuevo consumo
@@ -327,6 +333,11 @@ export default function Renewals() {
         consumption={selectedConsumption}
         open={consumptionDialogOpen}
         onOpenChange={setConsumptionDialogOpen}
+      />
+
+      <ConsumptionImportWizard
+        open={consumptionImportOpen}
+        onOpenChange={setConsumptionImportOpen}
       />
     </div>
   );
