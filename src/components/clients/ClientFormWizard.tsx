@@ -75,6 +75,19 @@ export function ClientFormWizard({ open, onOpenChange }: ClientFormWizardProps) 
     enabled: !!policyData?.insurer_id,
   });
 
+  const { data: advisors } = useQuery({
+    queryKey: ['advisors'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('advisors')
+        .select('*')
+        .eq('is_active', true)
+        .order('full_name');
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const createClientMutation = useMutation({
     mutationFn: async () => {
       if (!clientData || !policyData || !user) {
@@ -130,7 +143,31 @@ export function ClientFormWizard({ open, onOpenChange }: ClientFormWizardProps) 
 
       if (policyError) throw policyError;
 
-      // 3. Create beneficiaries
+      // 3. Create policy advisors
+      const advisorsToInsert = [];
+      if (policyData.primary_advisor_id) {
+        advisorsToInsert.push({
+          policy_id: policy.id,
+          advisor_id: policyData.primary_advisor_id,
+          advisor_role: 'principal',
+        });
+      }
+      if (policyData.secondary_advisor_id) {
+        advisorsToInsert.push({
+          policy_id: policy.id,
+          advisor_id: policyData.secondary_advisor_id,
+          advisor_role: 'secundario',
+        });
+      }
+      
+      if (advisorsToInsert.length > 0) {
+        const { error: advisorsError } = await supabase
+          .from('policy_advisors')
+          .insert(advisorsToInsert);
+        if (advisorsError) throw advisorsError;
+      }
+
+      // 4. Create beneficiaries
       if (beneficiaries.length > 0) {
         const beneficiariesToInsert = beneficiaries.map((b) => ({
           policy_id: policy.id,
@@ -152,7 +189,7 @@ export function ClientFormWizard({ open, onOpenChange }: ClientFormWizardProps) 
         if (beneficiariesError) throw beneficiariesError;
       }
 
-      // 4. Create audit log
+      // 5. Create audit log
       await supabase.from('audit_logs').insert({
         user_id: user.id,
         user_email: user.email,
@@ -164,6 +201,8 @@ export function ClientFormWizard({ open, onOpenChange }: ClientFormWizardProps) 
           client_name: `${client.first_name} ${client.last_name}`,
           policy_number: policy.policy_number,
           beneficiaries_count: beneficiaries.length,
+          primary_advisor_id: policyData.primary_advisor_id || null,
+          secondary_advisor_id: policyData.secondary_advisor_id || null,
         },
       });
 
@@ -286,6 +325,7 @@ export function ClientFormWizard({ open, onOpenChange }: ClientFormWizardProps) 
               onChange={setPolicyData}
               insurers={insurers || []}
               products={products || []}
+              advisors={advisors || []}
             />
           )}
           {currentStep === 3 && (
