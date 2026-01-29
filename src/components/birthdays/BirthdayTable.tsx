@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Table,
   TableBody,
@@ -8,12 +9,13 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { BirthdayCardGenerator } from './BirthdayCardGenerator';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Eye, Mail, Phone, Send, PartyPopper, Clock, CheckCircle, AlertTriangle, Calendar } from 'lucide-react';
+import { Eye, Mail, Phone, Send, PartyPopper, Clock, CheckCircle, AlertTriangle, Calendar, Image } from 'lucide-react';
 import type { BirthdayClient, BirthdayStatus } from '@/hooks/useBirthdays';
 import { formatBirthdayDate } from '@/hooks/useBirthdays';
 
@@ -21,6 +23,7 @@ interface BirthdayTableProps {
   birthdays: BirthdayClient[];
   onViewDetails: (birthday: BirthdayClient) => void;
   onSend: (birthday: BirthdayClient) => void;
+  onGenerateCard: (birthday: BirthdayClient) => void;
 }
 
 const statusConfig: Record<BirthdayStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: React.ElementType; className?: string }> = {
@@ -54,7 +57,7 @@ const statusConfig: Record<BirthdayStatus, { label: string; variant: 'default' |
   },
 };
 
-export function BirthdayTable({ birthdays, onViewDetails, onSend }: BirthdayTableProps) {
+export function BirthdayTable({ birthdays, onViewDetails, onSend, onGenerateCard }: BirthdayTableProps) {
   if (birthdays.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -143,6 +146,19 @@ export function BirthdayTable({ birthdays, onViewDetails, onSend }: BirthdayTabl
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>Ver detalle</TooltipContent>
+                    </Tooltip>
+                    
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onGenerateCard(birthday)}
+                        >
+                          <Image className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Generar tarjeta</TooltipContent>
                     </Tooltip>
                     
                     {canSend && hasContact && (

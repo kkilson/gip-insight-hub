@@ -6,6 +6,7 @@ import { BirthdayFilters } from '@/components/birthdays/BirthdayFilters';
 import { BirthdayTable } from '@/components/birthdays/BirthdayTable';
 import { BirthdayDetailDialog } from '@/components/birthdays/BirthdayDetailDialog';
 import { BirthdaySendDialog } from '@/components/birthdays/BirthdaySendDialog';
+import { BirthdayCardGenerator } from '@/components/birthdays/BirthdayCardGenerator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, subMonths, addMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -18,6 +19,7 @@ export default function Birthdays() {
   const [selectedBirthday, setSelectedBirthday] = useState<BirthdayClient | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [cardDialogOpen, setCardDialogOpen] = useState(false);
 
   const { data, isLoading, refetch, isRefetching } = useBirthdays(monthFilter);
 
@@ -51,6 +53,11 @@ export default function Birthdays() {
   const handleSend = (birthday: BirthdayClient) => {
     setSelectedBirthday(birthday);
     setSendDialogOpen(true);
+  };
+
+  const handleGenerateCard = (birthday: BirthdayClient) => {
+    setSelectedBirthday(birthday);
+    setCardDialogOpen(true);
   };
 
   return (
@@ -102,6 +109,7 @@ export default function Birthdays() {
           birthdays={filteredBirthdays}
           onViewDetails={handleViewDetails}
           onSend={handleSend}
+          onGenerateCard={handleGenerateCard}
         />
       )}
 
@@ -117,6 +125,12 @@ export default function Birthdays() {
         birthday={selectedBirthday}
         open={sendDialogOpen}
         onOpenChange={setSendDialogOpen}
+      />
+
+      <BirthdayCardGenerator
+        birthday={selectedBirthday}
+        open={cardDialogOpen}
+        onOpenChange={setCardDialogOpen}
       />
     </div>
   );
