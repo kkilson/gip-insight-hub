@@ -15,6 +15,7 @@ import Clients from "./pages/Clients";
 import Collections from "./pages/Collections";
 import Renewals from "./pages/Renewals";
 import Templates from "./pages/Templates";
+import Birthdays from "./pages/Birthdays";
 import AuditLogs from "./pages/AuditLogs";
 import NotFound from "./pages/NotFound";
 
@@ -53,8 +54,10 @@ const App = () => (
             <Route path="/renewals" element={<ProtectedLayout><Renewals /></ProtectedLayout>} />
             <Route path="/templates" element={<ProtectedLayout><Templates /></ProtectedLayout>} />
             
+            {/* Birthdays page */}
+            <Route path="/birthdays" element={<ProtectedLayout><Birthdays /></ProtectedLayout>} />
+            
             {/* Placeholder pages */}
-            <Route path="/birthdays" element={<ProtectedLayout><PlaceholderPage title="Cumpleaños" description="Gestiona los cumpleaños de tus clientes" /></ProtectedLayout>} />
             <Route path="/finances" element={
               <ProtectedRoute requiredRoles={['acceso_total', 'revision_edicion_1']}>
                 <AppLayout><PlaceholderPage title="Finanzas" description="Administra ingresos, gastos y presupuestos" /></AppLayout>

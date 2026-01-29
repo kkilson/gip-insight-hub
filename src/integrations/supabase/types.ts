@@ -190,6 +190,65 @@ export type Database = {
           },
         ]
       }
+      birthday_sends: {
+        Row: {
+          card_path: string | null
+          channels: Json
+          client_id: string
+          created_at: string
+          error_email: string | null
+          error_whatsapp: string | null
+          id: string
+          notes: string | null
+          send_year: number
+          sent_at: string
+          sent_by: string | null
+          status_email: string | null
+          status_whatsapp: string | null
+          updated_at: string
+        }
+        Insert: {
+          card_path?: string | null
+          channels?: Json
+          client_id: string
+          created_at?: string
+          error_email?: string | null
+          error_whatsapp?: string | null
+          id?: string
+          notes?: string | null
+          send_year: number
+          sent_at?: string
+          sent_by?: string | null
+          status_email?: string | null
+          status_whatsapp?: string | null
+          updated_at?: string
+        }
+        Update: {
+          card_path?: string | null
+          channels?: Json
+          client_id?: string
+          created_at?: string
+          error_email?: string | null
+          error_whatsapp?: string | null
+          id?: string
+          notes?: string | null
+          send_year?: number
+          sent_at?: string
+          sent_by?: string | null
+          status_email?: string | null
+          status_whatsapp?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "birthday_sends_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       broker_settings: {
         Row: {
           address: string | null
