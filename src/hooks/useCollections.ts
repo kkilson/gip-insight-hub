@@ -36,6 +36,10 @@ export interface Collection {
     product_id: string | null;
     insurer?: { name: string; short_name: string | null } | null;
     product?: { name: string; category: string | null } | null;
+    policy_advisors?: Array<{
+      advisor_role: string;
+      advisor?: { id: string; full_name: string } | null;
+    }>;
   };
 }
 
@@ -95,7 +99,11 @@ export function useCollections(filters: CollectionFilters = {}) {
             insurer_id, 
             product_id,
             insurer:insurers(name, short_name),
-            product:products(name, category)
+            product:products(name, category),
+            policy_advisors:policy_advisors(
+              advisor_role,
+              advisor:advisors(id, full_name)
+            )
           )
         `)
         .order('due_date', { ascending: true });

@@ -106,6 +106,7 @@ export function RenewalTable({
           <TableRow className="bg-muted/50">
             <TableHead>Póliza</TableHead>
             <TableHead>Cliente</TableHead>
+            <TableHead>Asesores</TableHead>
             <TableHead>Renovación</TableHead>
             <TableHead className="text-right">Prima Actual</TableHead>
             <TableHead className="text-right">Prima Nueva</TableHead>
@@ -125,6 +126,9 @@ export function RenewalTable({
             const percentageChange = hasNewAmount && currentAmount > 0
               ? ((newAmount - currentAmount) / currentAmount) * 100
               : null;
+            
+            const primaryAdvisor = policy.policy_advisors?.find(pa => pa.advisor_role === 'principal')?.advisor;
+            const secondaryAdvisor = policy.policy_advisors?.find(pa => pa.advisor_role === 'secundario')?.advisor;
 
             return (
               <TableRow key={policy.id} className={cn(daysRemaining <= 7 && 'bg-destructive/5')}>
@@ -141,6 +145,19 @@ export function RenewalTable({
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {policy.client.email || policy.client.phone || policy.client.mobile || '-'}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="space-y-0.5">
+                    {primaryAdvisor && (
+                      <p className="text-xs font-medium">{primaryAdvisor.full_name}</p>
+                    )}
+                    {secondaryAdvisor && (
+                      <p className="text-xs text-muted-foreground">{secondaryAdvisor.full_name}</p>
+                    )}
+                    {!primaryAdvisor && !secondaryAdvisor && (
+                      <span className="text-xs text-muted-foreground">-</span>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell>

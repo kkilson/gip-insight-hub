@@ -109,6 +109,7 @@ export function CollectionTable({ collections, isLoading }: CollectionTableProps
             <TableRow>
               <TableHead>Cliente</TableHead>
               <TableHead>Póliza</TableHead>
+              <TableHead>Asesores</TableHead>
               <TableHead>Vencimiento</TableHead>
               <TableHead>Monto</TableHead>
               <TableHead>Estado</TableHead>
@@ -146,6 +147,7 @@ export function CollectionTable({ collections, isLoading }: CollectionTableProps
             <TableRow>
               <TableHead>Cliente</TableHead>
               <TableHead>Póliza</TableHead>
+              <TableHead>Asesores</TableHead>
               <TableHead>Vencimiento</TableHead>
               <TableHead>Monto</TableHead>
               <TableHead>Estado</TableHead>
@@ -156,6 +158,8 @@ export function CollectionTable({ collections, isLoading }: CollectionTableProps
           <TableBody>
             {collections.map((collection) => {
               const daysOverdue = calculateDaysOverdue(collection.due_date, collection.status);
+              const primaryAdvisor = collection.policy?.policy_advisors?.find(pa => pa.advisor_role === 'principal')?.advisor;
+              const secondaryAdvisor = collection.policy?.policy_advisors?.find(pa => pa.advisor_role === 'secundario')?.advisor;
               
               return (
                 <TableRow key={collection.id}>
@@ -178,6 +182,19 @@ export function CollectionTable({ collections, isLoading }: CollectionTableProps
                         {collection.policy?.insurer?.short_name || collection.policy?.insurer?.name || ''}
                         {collection.policy?.product?.name ? ` - ${collection.policy.product.name}` : ''}
                       </p>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="space-y-0.5">
+                      {primaryAdvisor && (
+                        <p className="text-xs font-medium">{primaryAdvisor.full_name}</p>
+                      )}
+                      {secondaryAdvisor && (
+                        <p className="text-xs text-muted-foreground">{secondaryAdvisor.full_name}</p>
+                      )}
+                      {!primaryAdvisor && !secondaryAdvisor && (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
