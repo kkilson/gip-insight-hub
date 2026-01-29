@@ -5,6 +5,7 @@ import { User, FileText, Users, CheckCircle2 } from 'lucide-react';
 import { format, parse } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { ClientFormData, PolicyFormData, BeneficiaryFormData, Insurer, Product } from '../types';
+import { formatInstallment } from '@/lib/premiumCalculations';
 
 interface ReviewStepProps {
   clientData: ClientFormData | null;
@@ -171,8 +172,12 @@ export function ReviewStep({
                 <p className="font-medium">{frequencyLabels[policyData.payment_frequency]}</p>
               </div>
               <div>
-                <span className="text-muted-foreground">Prima:</span>
+                <span className="text-muted-foreground">Prima Anual:</span>
                 <p className="font-medium">{formatCurrency(policyData.premium)}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Cuota:</span>
+                <p className="font-medium">{formatInstallment(policyData.premium, policyData.payment_frequency)}</p>
               </div>
               <div>
                 <span className="text-muted-foreground">Suma asegurada:</span>

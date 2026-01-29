@@ -11,6 +11,7 @@ import {
 import { FileText } from 'lucide-react';
 import { format, parse, addYears, addMonths, addDays } from 'date-fns';
 import type { PolicyFormData, Insurer, Product } from '../types';
+import { formatInstallment, getInstallmentLabel } from '@/lib/premiumCalculations';
 
 interface PolicyStepProps {
   data: PolicyFormData | null;
@@ -195,7 +196,7 @@ export function PolicyStep({ data, onChange, insurers, products }: PolicyStepPro
 
         {/* Financial */}
         <div className="space-y-2">
-          <Label htmlFor="premium">Prima (USD)</Label>
+          <Label htmlFor="premium">Prima Anual (USD)</Label>
           <Input
             id="premium"
             type="number"
@@ -226,6 +227,19 @@ export function PolicyStep({ data, onChange, insurers, products }: PolicyStepPro
               <SelectItem value="anual">Anual</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+
+        {/* Calculated Installment */}
+        <div className="space-y-2">
+          <Label>Cuota (USD)</Label>
+          <div className="flex items-center gap-2">
+            <div className="h-10 px-3 py-2 rounded-md border border-input bg-muted text-sm font-medium flex items-center flex-1">
+              {formatInstallment(formData.premium, formData.payment_frequency)}
+            </div>
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
+              ({getInstallmentLabel(formData.payment_frequency)})
+            </span>
+          </div>
         </div>
 
         {/* Premium Payment Date */}
