@@ -1,125 +1,138 @@
 
-# Plan: Rediseño Elegante del Aviso de Prima + Logo
+# Plan: Prima Anual y Cálculo de Cuotas
 
 ## Resumen
 
-Rediseñar el PDF de "Aviso de Prima" con un estilo más minimalista y profesional inspirado en el formato VUMI, además de asegurar que el logo se cargue correctamente desde la configuración del corretaje.
+Modificar la sección de Póliza en el módulo de Clientes para:
+1. Cambiar la etiqueta "Prima (USD)" por "Prima Anual (USD)"
+2. Añadir una nueva sección de "Cuotas" que muestre el cálculo automático basado en la frecuencia de pago
 
 ---
 
-## Diseño Propuesto
+## Lógica de Cálculo de Cuotas
 
-Basándome en el formato elegante del PDF de VUMI, el nuevo diseño será más limpio y sofisticado:
+| Frecuencia de pago | Número de pagos | Ejemplo |
+|-------------------|-----------------|---------|
+| Anual | 1 | $1500 / 1 = $1500 |
+| Semestral | 2 | $1500 / 2 = $750 |
+| Trimestral | 4 | $1500 / 4 = $375 |
+| Bimensual | 6 | $1500 / 6 = $250 |
+| Mensual 10 cuotas | 10 | $1500 / 10 = $150 |
+| Mensual 12 cuotas | 12 | $1500 / 12 = $125 |
+| Mensual (legacy) | 12 | $1500 / 12 = $125 |
 
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│                                                                 │
-│  [LOGO GIP]                              AVISO DE PRIMA         │
-│  ─────────────────────────────────────────────────────────────  │
-│                                                                 │
-│                                    29 de enero de 2026          │
-│                                                                 │
-│  Estimado (a) NOMBRE DEL CLIENTE                                │
-│                                                                 │
-│  Le informamos que se acerca la fecha de vencimiento de la      │
-│  prima correspondiente a su póliza de seguro. A continuación,   │
-│  encontrará los detalles de su próximo pago.                    │
-│                                                                 │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │  Datos de la póliza                                         │ │
-│  ├────────────────────────────────────────────────────────────┤ │
-│  │  Número de póliza:         8000035927                       │ │
-│  │  Aseguradora:              VUMI                             │ │
-│  │  Plan / Producto:          ACCESS VIP VZLA                  │ │
-│  │  Frecuencia de pago:       TRIMESTRAL                       │ │
-│  │  Monto de la prima:        $ 872.00                         │ │
-│  │  Fecha del próximo pago:   1 de enero de 2026               │ │
-│  └────────────────────────────────────────────────────────────┘ │
-│                                                                 │
-│  Le sugerimos realizar el pago de su prima antes de la fecha    │
-│  de vencimiento para mantener la vigencia de su póliza.         │
-│                                                                 │
-│  Saludos cordiales,                                             │
-│  GIP - Global Integral Protection                               │
-│  J-12345678-9                                                   │
-│                                                                 │
-│  ─────────────────────────────────────────────────────────────  │
-│  info@gip.com · +58 212 123 4567                                │
-│  Av. Principal, Torre GIP, Caracas                              │
-└─────────────────────────────────────────────────────────────────┘
+---
+
+## Archivos a Modificar
+
+| Archivo | Cambio |
+|---------|--------|
+| `src/components/clients/steps/PolicyStep.tsx` | Cambiar label "Prima (USD)" → "Prima Anual (USD)" y añadir campo calculado de "Cuota" |
+| `src/components/clients/steps/ReviewStep.tsx` | Mostrar "Prima Anual" y añadir línea de "Cuota" en la revisión |
+| `src/components/clients/ClientDetailDialog.tsx` | Actualizar visualización de póliza para mostrar Prima Anual y Cuota |
+
+---
+
+## Cambios Específicos
+
+### 1. PolicyStep.tsx - Formulario de Póliza
+
+**Antes:**
+```
+Prima (USD): [input $1500]
+Frecuencia de pago: [Mensual 12]
+```
+
+**Después:**
+```
+Prima Anual (USD): [input $1500]
+Frecuencia de pago: [Mensual 12]
+Cuota (USD): $125.00 (calculado automático, solo lectura)
+```
+
+Se añadirá:
+- Cambio de label de "Prima (USD)" a "Prima Anual (USD)"
+- Nuevo campo de solo lectura que muestre la cuota calculada
+- Función helper para calcular el divisor según la frecuencia
+
+### 2. ReviewStep.tsx - Paso de Revisión
+
+**Antes:**
+```
+Prima: $1,500.00
+Frecuencia: Mensual 12 cuotas
+```
+
+**Después:**
+```
+Prima Anual: $1,500.00
+Frecuencia: Mensual 12 cuotas
+Cuota: $125.00
+```
+
+### 3. ClientDetailDialog.tsx - Detalle del Cliente
+
+En la pestaña "Pólizas", actualizar la visualización para mostrar:
+- Prima Anual en lugar de solo Prima
+- Nueva línea con el valor de la Cuota calculada
+
+---
+
+## Función de Cálculo
+
+Se creará una función reutilizable:
+
+```typescript
+const getInstallmentDivisor = (frequency: string): number => {
+  switch (frequency) {
+    case 'anual': return 1;
+    case 'semestral': return 2;
+    case 'trimestral': return 4;
+    case 'bimensual': return 6;
+    case 'mensual_10_cuotas': return 10;
+    case 'mensual_12_cuotas': return 12;
+    case 'mensual': return 12; // Legacy
+    default: return 1;
+  }
+};
+
+const calculateInstallment = (annualPremium: number, frequency: string): number => {
+  const divisor = getInstallmentDivisor(frequency);
+  return annualPremium / divisor;
+};
 ```
 
 ---
 
-## Mejoras de Diseño
+## Vista Previa del Resultado
 
-| Aspecto | Antes | Después |
-|---------|-------|---------|
-| **Tipografía** | Segoe UI estándar | Sistema moderno con pesos variados para jerarquía |
-| **Espaciado** | Compacto | Más aire, márgenes generosos |
-| **Línea divisoria** | Gruesa (3px) | Fina y elegante (1px) |
-| **Tabla de datos** | Con bordes pesados | Estilo limpio sin bordes laterales (tipo VUMI) |
-| **Logo** | Max 80px altura | 60px altura, mejor proporcionado |
-| **Colores** | Uso intensivo del azul | Uso más sutil y elegante |
-| **Footer** | Separado visualmente | Integrado sutilmente |
+### En el formulario de Póliza:
+```
+┌─────────────────────────────────────────────────────────┐
+│  Prima Anual (USD)         Frecuencia de pago           │
+│  [     1,500.00    ]       [  Mensual 12 cuotas  ▼]     │
+│                                                         │
+│  Cuota (USD)                                            │
+│  $125.00                    (12 cuotas anuales)         │
+└─────────────────────────────────────────────────────────┘
+```
 
----
-
-## Sobre el Logo
-
-El sistema ya está preparado para mostrar el logo del corretaje:
-
-1. **Para subir el logo**: Ve a **Configuración** en el menú lateral
-2. Busca la sección **"Datos del Corretaje"**  
-3. Haz clic en **"Subir logo"** y selecciona el archivo del logo GIP
-4. Guarda los cambios
-
-Una vez subido, el logo aparecerá automáticamente en todos los Avisos de Prima generados.
-
----
-
-## Implementación
-
-### Archivo a modificar
-
-| Archivo | Cambio |
-|---------|--------|
-| `src/components/collections/generatePremiumNoticePdf.ts` | Rediseño completo del template HTML/CSS |
-
-### Cambios específicos en el template
-
-1. **Header más elegante**
-   - Logo con tamaño optimizado (60px altura máx)
-   - Título "AVISO DE PRIMA" con tipografía más refinada
-   - Línea divisoria fina color accent
-
-2. **Tabla de datos estilo VUMI**
-   - Sin bordes laterales
-   - Encabezado con fondo azul secundario
-   - Filas alternadas con fondo sutil
-   - Tipografía con mejor jerarquía
-
-3. **Sección de monto destacado**
-   - El monto de la prima tendrá mayor prominencia visual
-   - Badge o caja resaltada para el monto
-
-4. **Footer minimalista**
-   - Una sola línea divisoria fina
-   - Información de contacto en formato compacto
-   - Iconos sutiles para email/teléfono (opcionales)
-
-5. **Mejoras de impresión**
-   - Optimización para impresión en blanco y negro
-   - Preservación de colores con `print-color-adjust`
+### En el detalle del cliente (Pólizas):
+```
+┌─────────────────────────────────────────────────────────┐
+│  VUMI - ACCESS VIP                            Vigente   │
+│  ───────────────────────────────────────────────────────│
+│  📄 8000035927  📅 01/01/26 - 01/01/27                  │
+│  💵 Prima Anual: $1,500.00   💰 Cuota: $125.00          │
+│  📋 Suma: $100,000                                      │
+└─────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Resultado Esperado
+## Notas Técnicas
 
-Un documento PDF profesional y elegante que:
-
-- Refleja la identidad corporativa de GIP
-- Sigue el estándar de calidad de aseguradoras como VUMI
-- Es fácil de leer e imprimir
-- Incluye el logo del corretaje de forma prominente
-- Transmite profesionalismo y confianza al cliente
+- El campo de "Cuota" será de **solo lectura** y se calculará automáticamente
+- Se actualiza en tiempo real cuando cambia la prima o la frecuencia
+- Se muestra con formato de moneda consistente ($XXX.XX)
+- No se modifica la base de datos; el campo `premium` sigue almacenando la prima anual
