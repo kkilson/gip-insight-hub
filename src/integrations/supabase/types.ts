@@ -602,6 +602,45 @@ export type Database = {
           },
         ]
       }
+      policy_advisors: {
+        Row: {
+          advisor_id: string
+          advisor_role: string
+          created_at: string
+          id: string
+          policy_id: string
+        }
+        Insert: {
+          advisor_id: string
+          advisor_role?: string
+          created_at?: string
+          id?: string
+          policy_id: string
+        }
+        Update: {
+          advisor_id?: string
+          advisor_role?: string
+          created_at?: string
+          id?: string
+          policy_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_advisors_advisor_id_fkey"
+            columns: ["advisor_id"]
+            isOneToOne: false
+            referencedRelation: "advisors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_advisors_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       policy_consumptions: {
         Row: {
           amount_bs: number | null

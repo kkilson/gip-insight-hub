@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/select';
 import { FileText } from 'lucide-react';
 import { format, parse, addYears, addMonths, addDays } from 'date-fns';
-import type { PolicyFormData, Insurer, Product } from '../types';
+import type { PolicyFormData, Insurer, Product, Advisor } from '../types';
 import { formatInstallment, getInstallmentLabel } from '@/lib/premiumCalculations';
 
 interface PolicyStepProps {
@@ -18,6 +18,7 @@ interface PolicyStepProps {
   onChange: (data: PolicyFormData) => void;
   insurers: Insurer[];
   products: Product[];
+  advisors: Advisor[];
 }
 
 // Calculate next premium payment date based on start date and frequency
@@ -56,7 +57,7 @@ const calculatePremiumPaymentDate = (startDate: string, frequency: string): stri
   return format(paymentDate, 'yyyy-MM-dd');
 };
 
-export function PolicyStep({ data, onChange, insurers, products }: PolicyStepProps) {
+export function PolicyStep({ data, onChange, insurers, products, advisors }: PolicyStepProps) {
   const today = new Date();
   const nextYear = addYears(today, 1);
 
@@ -293,6 +294,60 @@ export function PolicyStep({ data, onChange, insurers, products }: PolicyStepPro
             rows={3}
             maxLength={500}
           />
+        </div>
+
+        {/* Advisors Section */}
+        <div className="md:col-span-2 pt-4 border-t">
+          <h4 className="text-sm font-medium mb-4">Asesores de la Póliza</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Asesor Principal</Label>
+              <Select
+                value={formData.primary_advisor_id || ''}
+                onValueChange={(v) => updateField('primary_advisor_id', v === '' ? undefined : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar asesor principal" />
+                </SelectTrigger>
+                <SelectContent className="z-[9999] bg-popover border shadow-lg" position="popper" sideOffset={4}>
+                  <SelectItem value="">Sin asesor</SelectItem>
+                  {advisors.filter(a => a.is_active).map((advisor) => (
+                    <SelectItem 
+                      key={advisor.id} 
+                      value={advisor.id}
+                      disabled={advisor.id === formData.secondary_advisor_id}
+                    >
+                      {advisor.full_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Asesor Secundario</Label>
+              <Select
+                value={formData.secondary_advisor_id || ''}
+                onValueChange={(v) => updateField('secondary_advisor_id', v === '' ? undefined : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar asesor secundario" />
+                </SelectTrigger>
+                <SelectContent className="z-[9999] bg-popover border shadow-lg" position="popper" sideOffset={4}>
+                  <SelectItem value="">Sin asesor</SelectItem>
+                  {advisors.filter(a => a.is_active).map((advisor) => (
+                    <SelectItem 
+                      key={advisor.id} 
+                      value={advisor.id}
+                      disabled={advisor.id === formData.primary_advisor_id}
+                    >
+                      {advisor.full_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
       </div>
     </div>

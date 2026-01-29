@@ -28,6 +28,16 @@ export interface PolicyFormData {
   deductible?: string;
   notes?: string;
   premium_payment_date?: string;
+  primary_advisor_id?: string;
+  secondary_advisor_id?: string;
+}
+
+export interface Advisor {
+  id: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  is_active: boolean | null;
 }
 
 export interface BeneficiaryFormData {

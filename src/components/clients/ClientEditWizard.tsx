@@ -137,7 +137,6 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
       });
     }
   }, [existingPolicy]);
-
   useEffect(() => {
     if (existingBeneficiaries?.length) {
       setBeneficiaries(
@@ -191,6 +190,48 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
     },
     enabled: !!policyData?.insurer_id,
   });
+
+  const { data: advisors } = useQuery({
+    queryKey: ['advisors'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('advisors')
+        .select('*')
+        .eq('is_active', true)
+        .order('full_name');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch existing policy advisors
+  const { data: existingPolicyAdvisors } = useQuery({
+    queryKey: ['policy-advisors', policyId],
+    queryFn: async () => {
+      if (!policyId) return [];
+      const { data, error } = await supabase
+        .from('policy_advisors')
+        .select('*')
+        .eq('policy_id', policyId);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!policyId,
+  });
+
+  // Populate advisor data from policy_advisors
+  useEffect(() => {
+    if (existingPolicyAdvisors?.length && policyData) {
+      const primary = existingPolicyAdvisors.find(a => a.advisor_role === 'principal');
+      const secondary = existingPolicyAdvisors.find(a => a.advisor_role === 'secundario');
+      
+      setPolicyData(prev => prev ? {
+        ...prev,
+        primary_advisor_id: primary?.advisor_id || undefined,
+        secondary_advisor_id: secondary?.advisor_id || undefined,
+      } : prev);
+    }
+  }, [existingPolicyAdvisors]);
 
   const updateClientMutation = useMutation({
     mutationFn: async () => {
@@ -265,11 +306,39 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
             .from('beneficiaries')
             .insert(beneficiariesToInsert);
 
-          if (beneficiariesError) throw beneficiariesError;
+        if (beneficiariesError) throw beneficiariesError;
         }
       }
 
-      // 4. Create audit log
+      // 4. Update policy advisors - delete existing and insert new
+      if (policyId) {
+        await supabase.from('policy_advisors').delete().eq('policy_id', policyId);
+        
+        const advisorsToInsert = [];
+        if (policyData.primary_advisor_id) {
+          advisorsToInsert.push({
+            policy_id: policyId,
+            advisor_id: policyData.primary_advisor_id,
+            advisor_role: 'principal',
+          });
+        }
+        if (policyData.secondary_advisor_id) {
+          advisorsToInsert.push({
+            policy_id: policyId,
+            advisor_id: policyData.secondary_advisor_id,
+            advisor_role: 'secundario',
+          });
+        }
+        
+        if (advisorsToInsert.length > 0) {
+          const { error: advisorsError } = await supabase
+            .from('policy_advisors')
+            .insert(advisorsToInsert);
+          if (advisorsError) throw advisorsError;
+        }
+      }
+
+      // 5. Create audit log
       await supabase.from('audit_logs').insert({
         user_id: user.id,
         user_email: user.email,
@@ -280,6 +349,8 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
         details: {
           client_name: `${clientData.first_name} ${clientData.last_name}`,
           policy_number: policyData.policy_number,
+          primary_advisor_id: policyData.primary_advisor_id || null,
+          secondary_advisor_id: policyData.secondary_advisor_id || null,
         },
       });
 
@@ -391,6 +462,7 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
               onChange={setPolicyData}
               insurers={insurers || []}
               products={products || []}
+              advisors={advisors || []}
             />
           )}
           {currentStep === 3 && (
