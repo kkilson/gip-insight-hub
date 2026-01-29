@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import birthdayTemplate from '@/assets/birthday-card-template.jpg';
+import birthdayTemplate from '@/assets/birthday-card-template.png';
 
 interface BirthdayCardProps {
   clientName: string;
@@ -18,18 +18,10 @@ export const BirthdayCard = forwardRef<HTMLDivElement, BirthdayCardProps>(
           backgroundPosition: 'center',
         }}
       >
-        {/* Client name overlay - positioned inside the blue shape after "Sr. (a):" */}
-        <div 
-          className="absolute left-1/2 -translate-x-1/2 text-white font-semibold text-xl"
-          style={{ top: '365px', paddingLeft: '60px' }}
-        >
-          {clientName}
-        </div>
-
-        {/* Advisor name overlay - positioned below "Cordialmente:" */}
+        {/* Advisor name overlay - positioned below "Cordialmente:" on the signature line */}
         <div 
           className="absolute left-1/2 -translate-x-1/2 text-white font-medium text-lg"
-          style={{ top: '570px' }}
+          style={{ top: '665px' }}
         >
           {advisorName || ''}
         </div>
