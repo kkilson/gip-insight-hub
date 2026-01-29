@@ -303,15 +303,15 @@ export function PolicyStep({ data, onChange, insurers, products, advisors }: Pol
             <div className="space-y-2">
               <Label>Asesor Principal</Label>
               <Select
-                value={formData.primary_advisor_id || ''}
-                onValueChange={(v) => updateField('primary_advisor_id', v === '' ? undefined : v)}
+                value={formData.primary_advisor_id || 'none'}
+                onValueChange={(v) => updateField('primary_advisor_id', v === 'none' ? undefined : v)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar asesor principal" />
                 </SelectTrigger>
                 <SelectContent className="z-[9999] bg-popover border shadow-lg" position="popper" sideOffset={4}>
-                  <SelectItem value="">Sin asesor</SelectItem>
-                  {advisors.filter(a => a.is_active).map((advisor) => (
+                  <SelectItem value="none">Sin asesor</SelectItem>
+                  {advisors.filter(a => a.is_active && a.id).map((advisor) => (
                     <SelectItem 
                       key={advisor.id} 
                       value={advisor.id}
@@ -327,15 +327,15 @@ export function PolicyStep({ data, onChange, insurers, products, advisors }: Pol
             <div className="space-y-2">
               <Label>Asesor Secundario</Label>
               <Select
-                value={formData.secondary_advisor_id || ''}
-                onValueChange={(v) => updateField('secondary_advisor_id', v === '' ? undefined : v)}
+                value={formData.secondary_advisor_id || 'none'}
+                onValueChange={(v) => updateField('secondary_advisor_id', v === 'none' ? undefined : v)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar asesor secundario" />
                 </SelectTrigger>
                 <SelectContent className="z-[9999] bg-popover border shadow-lg" position="popper" sideOffset={4}>
-                  <SelectItem value="">Sin asesor</SelectItem>
-                  {advisors.filter(a => a.is_active).map((advisor) => (
+                  <SelectItem value="none">Sin asesor</SelectItem>
+                  {advisors.filter(a => a.is_active && a.id).map((advisor) => (
                     <SelectItem 
                       key={advisor.id} 
                       value={advisor.id}

@@ -209,7 +209,7 @@ export function ClientFilters({ filters, onFiltersChange }: ClientFiltersProps) 
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos los asesores</SelectItem>
-                {advisors?.map((a) => (
+                {advisors?.filter((a) => a.id).map((a) => (
                   <SelectItem key={a.id} value={a.id}>
                     {a.full_name}
                   </SelectItem>
