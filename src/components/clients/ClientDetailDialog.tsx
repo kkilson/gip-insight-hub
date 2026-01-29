@@ -39,6 +39,7 @@ import {
   Loader2,
   AlertCircle,
   Paperclip,
+  UserCheck,
 } from 'lucide-react';
 import { FileAttachments } from './FileAttachments';
 import { format } from 'date-fns';
@@ -113,7 +114,11 @@ export function ClientDetailDialog({
         .select(`
           *,
           insurer:insurers(name, short_name),
-          product:products(name, category)
+          product:products(name, category),
+          policy_advisors:policy_advisors(
+            advisor_role,
+            advisor:advisors(id, full_name, email, phone)
+          )
         `)
         .eq('client_id', clientId)
         .order('created_at', { ascending: false });
@@ -359,57 +364,85 @@ export function ClientDetailDialog({
                       </CardContent>
                     </Card>
                   ) : (
-                    policies?.map((policy) => (
-                      <Card key={policy.id}>
-                        <CardContent className="pt-6">
-                          <div className="flex items-start justify-between mb-4">
-                            <div>
-                              <p className="font-medium">
-                                {(policy.insurer as any)?.name || 'Sin aseguradora'}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {(policy.product as any)?.name || 'Sin producto'}
-                              </p>
-                            </div>
-                            <Badge className={statusColors[policy.status || 'en_tramite']}>
-                              {statusLabels[policy.status || 'en_tramite']}
-                            </Badge>
-                          </div>
-                          <Separator className="my-4" />
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                            <div className="flex items-center gap-2">
-                              <FileText className="h-4 w-4 text-muted-foreground" />
-                              <span>{policy.policy_number || 'Sin número'}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-muted-foreground" />
-                              <span>
-                                {format(new Date(policy.start_date), 'dd/MM/yyyy')} -
-                                {format(new Date(policy.end_date), 'dd/MM/yyyy')}
-                              </span>
-                            </div>
-                            {policy.premium && (
-                              <div className="flex items-center gap-2">
-                                <DollarSign className="h-4 w-4 text-muted-foreground" />
-                                <span>Anual: ${parseFloat(String(policy.premium)).toFixed(2)}</span>
+                    policies?.map((policy) => {
+                      const primaryAdvisor = (policy as any).policy_advisors?.find((pa: any) => pa.advisor_role === 'principal')?.advisor;
+                      const secondaryAdvisor = (policy as any).policy_advisors?.find((pa: any) => pa.advisor_role === 'secundario')?.advisor;
+                      
+                      return (
+                        <Card key={policy.id}>
+                          <CardContent className="pt-6">
+                            <div className="flex items-start justify-between mb-4">
+                              <div>
+                                <p className="font-medium">
+                                  {(policy.insurer as any)?.name || 'Sin aseguradora'}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {(policy.product as any)?.name || 'Sin producto'}
+                                </p>
                               </div>
+                              <Badge className={statusColors[policy.status || 'en_tramite']}>
+                                {statusLabels[policy.status || 'en_tramite']}
+                              </Badge>
+                            </div>
+                            
+                            {/* Advisors Section */}
+                            {(primaryAdvisor || secondaryAdvisor) && (
+                              <>
+                                <div className="flex items-center gap-2 mb-3 pb-3 border-b">
+                                  <UserCheck className="h-4 w-4 text-muted-foreground" />
+                                  <span className="text-sm font-medium">Asesores:</span>
+                                  <div className="flex flex-wrap gap-2">
+                                    {primaryAdvisor && (
+                                      <Badge variant="default" className="text-xs">
+                                        {primaryAdvisor.full_name}
+                                      </Badge>
+                                    )}
+                                    {secondaryAdvisor && (
+                                      <Badge variant="secondary" className="text-xs">
+                                        {secondaryAdvisor.full_name}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </>
                             )}
-                            {policy.premium && policy.payment_frequency && (
+                            
+                            <Separator className="my-4" />
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                               <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground">Cuota:</span>
-                                <span>{formatInstallment(policy.premium, policy.payment_frequency)}</span>
+                                <FileText className="h-4 w-4 text-muted-foreground" />
+                                <span>{policy.policy_number || 'Sin número'}</span>
                               </div>
-                            )}
-                            {policy.coverage_amount && (
                               <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground">Suma:</span>
-                                <span>${parseFloat(String(policy.coverage_amount)).toLocaleString()}</span>
+                                <Calendar className="h-4 w-4 text-muted-foreground" />
+                                <span>
+                                  {format(new Date(policy.start_date), 'dd/MM/yyyy')} -
+                                  {format(new Date(policy.end_date), 'dd/MM/yyyy')}
+                                </span>
                               </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))
+                              {policy.premium && (
+                                <div className="flex items-center gap-2">
+                                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                                  <span>Anual: ${parseFloat(String(policy.premium)).toFixed(2)}</span>
+                                </div>
+                              )}
+                              {policy.premium && policy.payment_frequency && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-muted-foreground">Cuota:</span>
+                                  <span>{formatInstallment(policy.premium, policy.payment_frequency)}</span>
+                                </div>
+                              )}
+                              {policy.coverage_amount && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-muted-foreground">Suma:</span>
+                                  <span>${parseFloat(String(policy.coverage_amount)).toLocaleString()}</span>
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })
                   )}
                 </TabsContent>
 
