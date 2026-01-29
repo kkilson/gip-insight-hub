@@ -72,6 +72,10 @@ export interface PolicyForRenewal {
     id: string;
     name: string;
   } | null;
+  policy_advisors?: Array<{
+    advisor_role: string;
+    advisor?: { id: string; full_name: string } | null;
+  }>;
   renewal_config: {
     id: string;
     status: RenewalStatus;
@@ -123,6 +127,10 @@ export function useRenewalPolicies(filters: RenewalFilters = {}) {
           product:products(
             id,
             name
+          ),
+          policy_advisors:policy_advisors(
+            advisor_role,
+            advisor:advisors(id, full_name)
           )
         `)
         .eq('status', 'vigente')
@@ -162,6 +170,7 @@ export function useRenewalPolicies(filters: RenewalFilters = {}) {
         client: Array.isArray(policy.client) ? policy.client[0] : policy.client,
         insurer: Array.isArray(policy.insurer) ? policy.insurer[0] : policy.insurer,
         product: Array.isArray(policy.product) ? policy.product[0] : policy.product,
+        policy_advisors: policy.policy_advisors || [],
         renewal_config: renewalConfigs[policy.id] || null,
       })) as PolicyForRenewal[];
 

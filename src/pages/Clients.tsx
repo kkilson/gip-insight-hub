@@ -38,6 +38,7 @@ export default function Clients() {
     insurerId: null,
     productId: null,
     status: null,
+    advisorId: null,
     dateFrom: '',
     dateTo: '',
   });
@@ -115,6 +116,15 @@ export default function Clients() {
       if (filters.dateTo) {
         filtered = filtered.filter((client) =>
           client.policies?.some((p: any) => p.end_date <= filters.dateTo)
+        );
+      }
+
+      // Advisor filter
+      if (filters.advisorId) {
+        filtered = filtered.filter((client) =>
+          client.policies?.some((p: any) =>
+            p.policy_advisors?.some((pa: any) => pa.advisor?.id === filters.advisorId)
+          )
         );
       }
 

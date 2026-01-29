@@ -18,6 +18,7 @@ export interface ClientFiltersState {
   insurerId: string | null;
   productId: string | null;
   status: string | null;
+  advisorId: string | null;
   dateFrom: string;
   dateTo: string;
 }
@@ -70,6 +71,19 @@ export function ClientFilters({ filters, onFiltersChange }: ClientFiltersProps) 
     },
   });
 
+  const { data: advisors } = useQuery({
+    queryKey: ['advisors-filter'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('advisors')
+        .select('id, full_name')
+        .eq('is_active', true)
+        .order('full_name');
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const updateFilter = <K extends keyof ClientFiltersState>(
     key: K,
     value: ClientFiltersState[K]
@@ -88,6 +102,7 @@ export function ClientFilters({ filters, onFiltersChange }: ClientFiltersProps) 
       insurerId: null,
       productId: null,
       status: null,
+      advisorId: null,
       dateFrom: '',
       dateTo: '',
     });
@@ -97,6 +112,7 @@ export function ClientFilters({ filters, onFiltersChange }: ClientFiltersProps) 
     filters.insurerId ||
     filters.productId ||
     filters.status ||
+    filters.advisorId ||
     filters.dateFrom ||
     filters.dateTo;
 
@@ -132,7 +148,7 @@ export function ClientFilters({ filters, onFiltersChange }: ClientFiltersProps) 
         </div>
 
         {showAdvanced && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 pt-4 border-t">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 pt-4 border-t">
             <Select
               value={filters.insurerId || 'all'}
               onValueChange={(v) => updateFilter('insurerId', v === 'all' ? null : v)}
@@ -179,6 +195,23 @@ export function ClientFilters({ filters, onFiltersChange }: ClientFiltersProps) 
                 {statusOptions.map((s) => (
                   <SelectItem key={s.value} value={s.value}>
                     {s.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={filters.advisorId || 'all'}
+              onValueChange={(v) => updateFilter('advisorId', v === 'all' ? null : v)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Asesor" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los asesores</SelectItem>
+                {advisors?.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    {a.full_name}
                   </SelectItem>
                 ))}
               </SelectContent>
