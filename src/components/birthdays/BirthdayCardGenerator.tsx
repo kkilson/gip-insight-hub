@@ -10,7 +10,6 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { BirthdayCard } from './BirthdayCard';
-import { useBrokerSettings } from '@/hooks/useBrokerSettings';
 import { toast } from 'sonner';
 import type { BirthdayClient } from '@/hooks/useBirthdays';
 
@@ -27,7 +26,6 @@ export function BirthdayCardGenerator({
 }: BirthdayCardGeneratorProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const { settings: brokerSettings } = useBrokerSettings();
 
   if (!birthday) return null;
 
@@ -77,7 +75,6 @@ export function BirthdayCardGenerator({
               ref={cardRef}
               clientName={birthday.fullName}
               advisorName={birthday.advisorName}
-              brokerName={brokerSettings?.name}
             />
           </div>
 
