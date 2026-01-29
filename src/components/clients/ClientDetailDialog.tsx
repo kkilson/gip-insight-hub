@@ -43,6 +43,7 @@ import {
 import { FileAttachments } from './FileAttachments';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { formatInstallment } from '@/lib/premiumCalculations';
 
 interface ClientDetailDialogProps {
   clientId: string | null;
@@ -390,7 +391,13 @@ export function ClientDetailDialog({
                             {policy.premium && (
                               <div className="flex items-center gap-2">
                                 <DollarSign className="h-4 w-4 text-muted-foreground" />
-                                <span>${parseFloat(String(policy.premium)).toFixed(2)}</span>
+                                <span>Anual: ${parseFloat(String(policy.premium)).toFixed(2)}</span>
+                              </div>
+                            )}
+                            {policy.premium && policy.payment_frequency && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground">Cuota:</span>
+                                <span>{formatInstallment(policy.premium, policy.payment_frequency)}</span>
                               </div>
                             )}
                             {policy.coverage_amount && (
