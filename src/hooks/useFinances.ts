@@ -441,6 +441,180 @@ export function useBudget(id: string | null) {
   });
 }
 
+export interface BudgetFormData {
+  name: string;
+  period: 'mensual' | 'bimestral' | 'trimestral' | 'cuatrimestral' | 'semestral' | 'anual' | 'bienal' | 'trienal' | 'cuatrienal' | 'quinquenal' | 'decenal';
+  start_date: string;
+  end_date: string;
+  cost_center_id: string | null;
+  currency: 'USD' | 'VES' | 'EUR' | 'USDT';
+  notes: string | null;
+  is_active: boolean;
+}
+
+export interface BudgetLineFormData {
+  id?: string;
+  planned_date: string;
+  account_id: string;
+  description: string;
+  can_pay_in_ves: boolean;
+  amount_usd: number;
+  reference_rate: number | null;
+  status: 'pendiente' | 'pagado' | 'vencido' | 'pospuesto';
+}
+
+export function useCreateBudget() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: async ({ budget, lines }: { budget: BudgetFormData; lines: BudgetLineFormData[] }) => {
+      // Calculate total budgeted
+      const total_budgeted_usd = lines.reduce((sum, line) => sum + line.amount_usd, 0);
+      
+      // Insert budget
+      const { data: newBudget, error: budgetError } = await supabase
+        .from('budgets')
+        .insert({
+          ...budget,
+          total_budgeted_usd,
+          total_spent_usd: 0,
+        })
+        .select()
+        .single();
+      
+      if (budgetError) throw budgetError;
+      
+      // Insert lines
+      if (lines.length > 0) {
+        const budgetLines = lines.map((line, index) => ({
+          budget_id: newBudget.id,
+          planned_date: line.planned_date,
+          account_id: line.account_id,
+          description: line.description,
+          can_pay_in_ves: line.can_pay_in_ves,
+          amount_usd: line.amount_usd,
+          reference_rate: line.reference_rate,
+          status: line.status,
+        }));
+        
+        const { error: linesError } = await supabase
+          .from('budget_lines')
+          .insert(budgetLines);
+        
+        if (linesError) throw linesError;
+      }
+      
+      return newBudget;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      toast({ title: 'Presupuesto creado correctamente' });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error al crear presupuesto',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+}
+
+export function useUpdateBudget() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: async ({ id, budget, lines }: { id: string; budget: BudgetFormData; lines: BudgetLineFormData[] }) => {
+      // Calculate total budgeted
+      const total_budgeted_usd = lines.reduce((sum, line) => sum + line.amount_usd, 0);
+      
+      // Update budget
+      const { error: budgetError } = await supabase
+        .from('budgets')
+        .update({
+          ...budget,
+          total_budgeted_usd,
+        })
+        .eq('id', id);
+      
+      if (budgetError) throw budgetError;
+      
+      // Delete existing lines
+      const { error: deleteError } = await supabase
+        .from('budget_lines')
+        .delete()
+        .eq('budget_id', id);
+      
+      if (deleteError) throw deleteError;
+      
+      // Insert new lines
+      if (lines.length > 0) {
+        const budgetLines = lines.map((line) => ({
+          budget_id: id,
+          planned_date: line.planned_date,
+          account_id: line.account_id,
+          description: line.description,
+          can_pay_in_ves: line.can_pay_in_ves,
+          amount_usd: line.amount_usd,
+          reference_rate: line.reference_rate,
+          status: line.status,
+        }));
+        
+        const { error: linesError } = await supabase
+          .from('budget_lines')
+          .insert(budgetLines);
+        
+        if (linesError) throw linesError;
+      }
+      
+      return id;
+    },
+    onSuccess: (id) => {
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      queryClient.invalidateQueries({ queryKey: ['budget', id] });
+      toast({ title: 'Presupuesto actualizado correctamente' });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error al actualizar presupuesto',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+}
+
+export function useDeleteBudget() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      // Lines will be cascade deleted
+      const { error } = await supabase
+        .from('budgets')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      toast({ title: 'Presupuesto eliminado correctamente' });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error al eliminar presupuesto',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+}
+
 // Monthly Closings
 export function useMonthlyClosings() {
   return useQuery({
