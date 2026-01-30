@@ -23,10 +23,11 @@ import {
   CollectionStatus 
 } from '@/hooks/useCollections';
 import { useBrokerSettings } from '@/hooks/useBrokerSettings';
-import { MoreHorizontal, Check, PhoneCall, Undo2, Eye, FileText } from 'lucide-react';
+import { MoreHorizontal, Check, PhoneCall, Undo2, Eye, FileText, RefreshCw } from 'lucide-react';
 import { MarkAsPaidDialog } from './MarkAsPaidDialog';
 import { AdvisorContactDialog } from './AdvisorContactDialog';
 import { CollectionDetailDialog } from './CollectionDetailDialog';
+import { ChangeStatusDialog } from './ChangeStatusDialog';
 import { generatePremiumNoticePdf } from './generatePremiumNoticePdf';
 
 interface CollectionTableProps {
@@ -87,6 +88,7 @@ export function CollectionTable({ collections, isLoading }: CollectionTableProps
   const [showPaidDialog, setShowPaidDialog] = useState(false);
   const [showAdvisorDialog, setShowAdvisorDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [showChangeStatusDialog, setShowChangeStatusDialog] = useState(false);
   const { settings: brokerSettings } = useBrokerSettings();
 
   const handleGeneratePdf = async (collection: Collection) => {
@@ -274,6 +276,17 @@ export function CollectionTable({ collections, isLoading }: CollectionTableProps
                             )}
                           </>
                         )}
+                        {(collection.status === 'cobrada' || collection.status === 'contacto_asesor') && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedCollection(collection);
+                              setShowChangeStatusDialog(true);
+                            }}
+                          >
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Cambiar estado
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -300,6 +313,11 @@ export function CollectionTable({ collections, isLoading }: CollectionTableProps
             collection={selectedCollection}
             open={showDetailDialog}
             onOpenChange={setShowDetailDialog}
+          />
+          <ChangeStatusDialog
+            collection={selectedCollection}
+            open={showChangeStatusDialog}
+            onOpenChange={setShowChangeStatusDialog}
           />
         </>
       )}
