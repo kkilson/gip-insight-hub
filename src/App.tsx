@@ -17,6 +17,7 @@ import Renewals from "./pages/Renewals";
 import Templates from "./pages/Templates";
 import Birthdays from "./pages/Birthdays";
 import AuditLogs from "./pages/AuditLogs";
+import Advisors from "./pages/Advisors";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -72,6 +73,11 @@ const App = () => (
             <Route path="/tutorials" element={<ProtectedLayout><PlaceholderPage title="Tutoriales" description="Guías y procesos del sistema" /></ProtectedLayout>} />
             <Route path="/sales" element={<ProtectedLayout><PlaceholderPage title="Ventas" description="Objetivos y seguimiento de ventas" /></ProtectedLayout>} />
             <Route path="/partnerships" element={<ProtectedLayout><PlaceholderPage title="Alianzas" description="Gestiona alianzas y cupones" /></ProtectedLayout>} />
+            <Route path="/advisors" element={
+              <ProtectedRoute requiredRoles={['acceso_total']}>
+                <AppLayout><Advisors /></AppLayout>
+              </ProtectedRoute>
+            } />
             <Route path="/audit-logs" element={
               <ProtectedRoute requiredRoles={['acceso_total', 'revision_edicion_1']}>
                 <AppLayout><AuditLogs /></AppLayout>

@@ -29,6 +29,7 @@ import {
   Handshake,
   ScrollText,
   Menu,
+  UserCog,
 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -105,6 +106,12 @@ const navigationItems: NavItem[] = [
     title: 'Alianzas',
     href: '/partnerships',
     icon: Handshake,
+  },
+  {
+    title: 'Asesores',
+    href: '/advisors',
+    icon: UserCog,
+    roles: ['acceso_total'],
   },
   {
     title: 'Auditoría',
