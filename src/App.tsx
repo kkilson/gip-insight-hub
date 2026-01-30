@@ -18,6 +18,7 @@ import Templates from "./pages/Templates";
 import Birthdays from "./pages/Birthdays";
 import AuditLogs from "./pages/AuditLogs";
 import Advisors from "./pages/Advisors";
+import Finances from "./pages/Finances";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,10 +59,10 @@ const App = () => (
             {/* Birthdays page */}
             <Route path="/birthdays" element={<ProtectedLayout><Birthdays /></ProtectedLayout>} />
             
-            {/* Placeholder pages */}
+            {/* Finances page */}
             <Route path="/finances" element={
               <ProtectedRoute requiredRoles={['acceso_total', 'revision_edicion_1']}>
-                <AppLayout><PlaceholderPage title="Finanzas" description="Administra ingresos, gastos y presupuestos" /></AppLayout>
+                <AppLayout><Finances /></AppLayout>
               </ProtectedRoute>
             } />
             <Route path="/commissions" element={

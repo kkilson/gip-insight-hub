@@ -285,6 +285,203 @@ export type Database = {
         }
         Relationships: []
       }
+      budget_lines: {
+        Row: {
+          account_id: string
+          actual_amount_usd: number | null
+          actual_payment_date: string | null
+          amount_usd: number
+          budget_id: string
+          can_pay_in_ves: boolean
+          created_at: string
+          description: string
+          id: string
+          journal_entry_id: string | null
+          planned_date: string
+          postpone_reason: string | null
+          postponed_date: string | null
+          reference_rate: number | null
+          status: Database["public"]["Enums"]["budget_status"]
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          actual_amount_usd?: number | null
+          actual_payment_date?: string | null
+          amount_usd: number
+          budget_id: string
+          can_pay_in_ves?: boolean
+          created_at?: string
+          description: string
+          id?: string
+          journal_entry_id?: string | null
+          planned_date: string
+          postpone_reason?: string | null
+          postponed_date?: string | null
+          reference_rate?: number | null
+          status?: Database["public"]["Enums"]["budget_status"]
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          actual_amount_usd?: number | null
+          actual_payment_date?: string | null
+          amount_usd?: number
+          budget_id?: string
+          can_pay_in_ves?: boolean
+          created_at?: string
+          description?: string
+          id?: string
+          journal_entry_id?: string | null
+          planned_date?: string
+          postpone_reason?: string | null
+          postponed_date?: string | null
+          reference_rate?: number | null
+          status?: Database["public"]["Enums"]["budget_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_lines_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "budgets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_lines_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budgets: {
+        Row: {
+          cost_center_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: Database["public"]["Enums"]["currency_type"]
+          end_date: string
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          period: Database["public"]["Enums"]["budget_period"]
+          start_date: string
+          total_budgeted_usd: number
+          total_spent_usd: number
+          updated_at: string
+        }
+        Insert: {
+          cost_center_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency_type"]
+          end_date: string
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          period: Database["public"]["Enums"]["budget_period"]
+          start_date: string
+          total_budgeted_usd?: number
+          total_spent_usd?: number
+          updated_at?: string
+        }
+        Update: {
+          cost_center_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency_type"]
+          end_date?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          period?: Database["public"]["Enums"]["budget_period"]
+          start_date?: string
+          total_budgeted_usd?: number
+          total_spent_usd?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budgets_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chart_of_accounts: {
+        Row: {
+          balance_usd: number
+          balance_ves: number
+          class: Database["public"]["Enums"]["account_class"]
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          level: number
+          name: string
+          nature: Database["public"]["Enums"]["account_nature"]
+          parent_id: string | null
+          requires_cost_center: boolean
+          requires_third_party: boolean
+          updated_at: string
+        }
+        Insert: {
+          balance_usd?: number
+          balance_ves?: number
+          class: Database["public"]["Enums"]["account_class"]
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          level?: number
+          name: string
+          nature: Database["public"]["Enums"]["account_nature"]
+          parent_id?: string | null
+          requires_cost_center?: boolean
+          requires_third_party?: boolean
+          updated_at?: string
+        }
+        Update: {
+          balance_usd?: number
+          balance_ves?: number
+          class?: Database["public"]["Enums"]["account_class"]
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          level?: number
+          name?: string
+          nature?: Database["public"]["Enums"]["account_nature"]
+          parent_id?: string | null
+          requires_cost_center?: boolean
+          requires_third_party?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chart_of_accounts_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string | null
@@ -472,6 +669,114 @@ export type Database = {
           },
         ]
       }
+      cost_centers: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          type: Database["public"]["Enums"]["cost_center_type"]
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          type: Database["public"]["Enums"]["cost_center_type"]
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          type?: Database["public"]["Enums"]["cost_center_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      exchange_rates: {
+        Row: {
+          created_at: string
+          currency: Database["public"]["Enums"]["currency_type"]
+          id: string
+          is_manual: boolean
+          manual_reason: string | null
+          rate: number
+          recorded_at: string
+          recorded_by: string | null
+          source: Database["public"]["Enums"]["exchange_rate_source"]
+        }
+        Insert: {
+          created_at?: string
+          currency: Database["public"]["Enums"]["currency_type"]
+          id?: string
+          is_manual?: boolean
+          manual_reason?: string | null
+          rate: number
+          recorded_at?: string
+          recorded_by?: string | null
+          source: Database["public"]["Enums"]["exchange_rate_source"]
+        }
+        Update: {
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency_type"]
+          id?: string
+          is_manual?: boolean
+          manual_reason?: string | null
+          rate?: number
+          recorded_at?: string
+          recorded_by?: string | null
+          source?: Database["public"]["Enums"]["exchange_rate_source"]
+        }
+        Relationships: []
+      }
+      finance_audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          ip_address: string | null
+          new_data: Json | null
+          previous_data: Json | null
+          reason: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          new_data?: Json | null
+          previous_data?: Json | null
+          reason?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          new_data?: Json | null
+          previous_data?: Json | null
+          reason?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       insurers: {
         Row: {
           address: string | null
@@ -513,6 +818,212 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
+      }
+      journal_entries: {
+        Row: {
+          base_currency: Database["public"]["Enums"]["currency_type"]
+          cost_center_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          entry_date: string
+          entry_number: number
+          exchange_rate: number
+          exchange_rate_source: Database["public"]["Enums"]["exchange_rate_source"]
+          id: string
+          is_month_closed: boolean
+          notes: string | null
+          status: Database["public"]["Enums"]["entry_status"]
+          total_credit_usd: number
+          total_credit_ves: number
+          total_debit_usd: number
+          total_debit_ves: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          base_currency?: Database["public"]["Enums"]["currency_type"]
+          cost_center_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          entry_date: string
+          entry_number?: number
+          exchange_rate: number
+          exchange_rate_source?: Database["public"]["Enums"]["exchange_rate_source"]
+          id?: string
+          is_month_closed?: boolean
+          notes?: string | null
+          status?: Database["public"]["Enums"]["entry_status"]
+          total_credit_usd?: number
+          total_credit_ves?: number
+          total_debit_usd?: number
+          total_debit_ves?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          base_currency?: Database["public"]["Enums"]["currency_type"]
+          cost_center_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          entry_date?: string
+          entry_number?: number
+          exchange_rate?: number
+          exchange_rate_source?: Database["public"]["Enums"]["exchange_rate_source"]
+          id?: string
+          is_month_closed?: boolean
+          notes?: string | null
+          status?: Database["public"]["Enums"]["entry_status"]
+          total_credit_usd?: number
+          total_credit_ves?: number
+          total_debit_usd?: number
+          total_debit_ves?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_entries_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_entry_lines: {
+        Row: {
+          account_id: string
+          applies_igtf: boolean
+          cost_center_id: string | null
+          created_at: string
+          credit_usd: number
+          credit_ves: number
+          debit_usd: number
+          debit_ves: number
+          description: string | null
+          entry_id: string
+          id: string
+          line_number: number
+          transaction_type: Database["public"]["Enums"]["transaction_type"]
+        }
+        Insert: {
+          account_id: string
+          applies_igtf?: boolean
+          cost_center_id?: string | null
+          created_at?: string
+          credit_usd?: number
+          credit_ves?: number
+          debit_usd?: number
+          debit_ves?: number
+          description?: string | null
+          entry_id: string
+          id?: string
+          line_number: number
+          transaction_type: Database["public"]["Enums"]["transaction_type"]
+        }
+        Update: {
+          account_id?: string
+          applies_igtf?: boolean
+          cost_center_id?: string | null
+          created_at?: string
+          credit_usd?: number
+          credit_ves?: number
+          debit_usd?: number
+          debit_ves?: number
+          description?: string | null
+          entry_id?: string
+          id?: string
+          line_number?: number
+          transaction_type?: Database["public"]["Enums"]["transaction_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_entry_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entry_lines_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entry_lines_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monthly_closings: {
+        Row: {
+          closed_by: string | null
+          closing_date: string
+          closing_entry_id: string | null
+          created_at: string
+          id: string
+          is_reopened: boolean
+          month: number
+          net_income_usd: number
+          reopen_reason: string | null
+          reopened_at: string | null
+          reopened_by: string | null
+          total_assets_usd: number
+          total_equity_usd: number
+          total_liabilities_usd: number
+          year: number
+        }
+        Insert: {
+          closed_by?: string | null
+          closing_date?: string
+          closing_entry_id?: string | null
+          created_at?: string
+          id?: string
+          is_reopened?: boolean
+          month: number
+          net_income_usd?: number
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
+          total_assets_usd?: number
+          total_equity_usd?: number
+          total_liabilities_usd?: number
+          year: number
+        }
+        Update: {
+          closed_by?: string | null
+          closing_date?: string
+          closing_entry_id?: string | null
+          created_at?: string
+          id?: string
+          is_reopened?: boolean
+          month?: number
+          net_income_usd?: number
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
+          total_assets_usd?: number
+          total_equity_usd?: number
+          total_liabilities_usd?: number
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_closings_closing_entry_id_fkey"
+            columns: ["closing_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       policies: {
         Row: {
@@ -924,12 +1435,38 @@ export type Database = {
       no_admin_exists: { Args: never; Returns: boolean }
     }
     Enums: {
+      account_class:
+        | "activos"
+        | "pasivos"
+        | "patrimonio"
+        | "ingresos"
+        | "costos"
+        | "gastos"
+        | "ajustes"
+      account_nature: "deudora" | "acreedora" | "variable"
       app_role:
         | "acceso_total"
         | "revision_edicion_1"
         | "revision_edicion_2"
         | "revision"
+      budget_period:
+        | "mensual"
+        | "bimestral"
+        | "trimestral"
+        | "cuatrimestral"
+        | "semestral"
+        | "anual"
+        | "bienal"
+        | "trienal"
+        | "cuatrienal"
+        | "quinquenal"
+        | "decenal"
+      budget_status: "pendiente" | "pagado" | "vencido" | "pospuesto"
       collection_status: "pendiente" | "contacto_asesor" | "cobrada"
+      cost_center_type: "operativo" | "comercial" | "administrativo" | "soporte"
+      currency_type: "USD" | "VES" | "EUR" | "USDT"
+      entry_status: "borrador" | "publicado" | "cerrado"
+      exchange_rate_source: "BCV" | "Binance" | "Kontigo" | "Manual"
       identification_type: "cedula" | "pasaporte" | "ruc" | "otro" | "rif"
       payment_frequency:
         | "mensual"
@@ -960,6 +1497,13 @@ export type Database = {
         | "enviada"
         | "error"
         | "completada"
+      transaction_type:
+        | "deposito"
+        | "retiro"
+        | "transferencia"
+        | "pago"
+        | "cobro"
+        | "ajuste"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1087,13 +1631,41 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      account_class: [
+        "activos",
+        "pasivos",
+        "patrimonio",
+        "ingresos",
+        "costos",
+        "gastos",
+        "ajustes",
+      ],
+      account_nature: ["deudora", "acreedora", "variable"],
       app_role: [
         "acceso_total",
         "revision_edicion_1",
         "revision_edicion_2",
         "revision",
       ],
+      budget_period: [
+        "mensual",
+        "bimestral",
+        "trimestral",
+        "cuatrimestral",
+        "semestral",
+        "anual",
+        "bienal",
+        "trienal",
+        "cuatrienal",
+        "quinquenal",
+        "decenal",
+      ],
+      budget_status: ["pendiente", "pagado", "vencido", "pospuesto"],
       collection_status: ["pendiente", "contacto_asesor", "cobrada"],
+      cost_center_type: ["operativo", "comercial", "administrativo", "soporte"],
+      currency_type: ["USD", "VES", "EUR", "USDT"],
+      entry_status: ["borrador", "publicado", "cerrado"],
+      exchange_rate_source: ["BCV", "Binance", "Kontigo", "Manual"],
       identification_type: ["cedula", "pasaporte", "ruc", "otro", "rif"],
       payment_frequency: [
         "mensual",
@@ -1127,6 +1699,14 @@ export const Constants = {
         "enviada",
         "error",
         "completada",
+      ],
+      transaction_type: [
+        "deposito",
+        "retiro",
+        "transferencia",
+        "pago",
+        "cobro",
+        "ajuste",
       ],
     },
   },
