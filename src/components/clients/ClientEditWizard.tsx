@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -16,6 +16,7 @@ import { ClientStep } from './steps/ClientStep';
 import { PolicyStep } from './steps/PolicyStep';
 import { BeneficiariesStep } from './steps/BeneficiariesStep';
 import { ReviewStep } from './steps/ReviewStep';
+import { PolicySelectionStep } from './steps/PolicySelectionStep';
 import type { ClientFormData, PolicyFormData, BeneficiaryFormData } from './types';
 
 interface ClientEditWizardProps {
@@ -24,19 +25,12 @@ interface ClientEditWizardProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const steps = [
-  { id: 1, name: 'Cliente', description: 'Datos del tomador' },
-  { id: 2, name: 'Póliza', description: 'Información de la póliza' },
-  { id: 3, name: 'Beneficiarios', description: 'Agregar beneficiarios' },
-  { id: 4, name: 'Revisión', description: 'Confirmar datos' },
-];
-
 export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [clientData, setClientData] = useState<ClientFormData | null>(null);
   const [policyData, setPolicyData] = useState<PolicyFormData | null>(null);
   const [beneficiaries, setBeneficiaries] = useState<BeneficiaryFormData[]>([]);
-  const [policyId, setPolicyId] = useState<string | null>(null);
+  const [selectedPolicyId, setSelectedPolicyId] = useState<string | null>(null);
 
   const { user } = useAuthContext();
   const { toast } = useToast();
@@ -58,43 +52,76 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
     enabled: !!clientId && open,
   });
 
-  // Fetch existing policy
-  const { data: existingPolicy } = useQuery({
-    queryKey: ['client-policy-edit', clientId],
+  // Fetch ALL policies for this client
+  const { data: clientPolicies } = useQuery({
+    queryKey: ['client-policies-edit', clientId],
     queryFn: async () => {
-      if (!clientId) return null;
+      if (!clientId) return [];
       const { data, error } = await supabase
         .from('policies')
-        .select('*')
+        .select(`
+          *,
+          insurer:insurers(name, short_name),
+          product:products(name, category)
+        `)
         .eq('client_id', clientId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .order('created_at', { ascending: false });
       if (error) throw error;
       return data;
     },
     enabled: !!clientId && open,
   });
 
-  // Fetch existing beneficiaries
+  // Determine if client has multiple policies
+  const hasMultiplePolicies = useMemo(() => {
+    return (clientPolicies?.length || 0) > 1;
+  }, [clientPolicies]);
+
+  // Dynamic steps based on number of policies
+  const steps = useMemo(() => {
+    if (hasMultiplePolicies) {
+      return [
+        { id: 1, name: 'Cliente', description: 'Datos del tomador' },
+        { id: 2, name: 'Seleccionar', description: 'Elegir póliza' },
+        { id: 3, name: 'Póliza', description: 'Información de la póliza' },
+        { id: 4, name: 'Beneficiarios', description: 'Agregar beneficiarios' },
+        { id: 5, name: 'Revisión', description: 'Confirmar datos' },
+      ];
+    }
+    return [
+      { id: 1, name: 'Cliente', description: 'Datos del tomador' },
+      { id: 2, name: 'Póliza', description: 'Información de la póliza' },
+      { id: 3, name: 'Beneficiarios', description: 'Agregar beneficiarios' },
+      { id: 4, name: 'Revisión', description: 'Confirmar datos' },
+    ];
+  }, [hasMultiplePolicies]);
+
+  const totalSteps = steps.length;
+
+  // Get the selected policy data
+  const selectedPolicy = useMemo(() => {
+    if (!selectedPolicyId || !clientPolicies) return null;
+    return clientPolicies.find(p => p.id === selectedPolicyId) || null;
+  }, [selectedPolicyId, clientPolicies]);
+
+  // Fetch existing beneficiaries for the selected policy
   const { data: existingBeneficiaries } = useQuery({
-    queryKey: ['client-beneficiaries-edit', policyId],
+    queryKey: ['client-beneficiaries-edit', selectedPolicyId],
     queryFn: async () => {
-      if (!policyId) return [];
+      if (!selectedPolicyId) return [];
       const { data, error } = await supabase
         .from('beneficiaries')
         .select('*')
-        .eq('policy_id', policyId);
+        .eq('policy_id', selectedPolicyId);
       if (error) throw error;
       return data;
     },
-    enabled: !!policyId,
+    enabled: !!selectedPolicyId,
   });
 
-  // Populate form with existing data
+  // Populate form with existing client data
   useEffect(() => {
     if (existingClient) {
-      // Handle identification_type mapping (ruc -> rif for legacy data)
       const idType = existingClient.identification_type === 'ruc' 
         ? 'rif' 
         : existingClient.identification_type;
@@ -118,30 +145,38 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
     }
   }, [existingClient]);
 
+  // Auto-select policy if there's only one
   useEffect(() => {
-    if (existingPolicy) {
-      setPolicyId(existingPolicy.id);
+    if (clientPolicies?.length === 1 && !selectedPolicyId) {
+      setSelectedPolicyId(clientPolicies[0].id);
+    }
+  }, [clientPolicies, selectedPolicyId]);
+
+  // Populate policy data when a policy is selected
+  useEffect(() => {
+    if (selectedPolicy) {
       setPolicyData({
-        insurer_id: existingPolicy.insurer_id || undefined,
-        product_id: existingPolicy.product_id || undefined,
-        policy_number: existingPolicy.policy_number || undefined,
-        start_date: existingPolicy.start_date,
-        end_date: existingPolicy.end_date,
-        status: existingPolicy.status || 'en_tramite',
-        premium: existingPolicy.premium?.toString() || undefined,
-        payment_frequency: (existingPolicy.payment_frequency === 'unico' ? 'mensual' : existingPolicy.payment_frequency) || 'mensual',
-        coverage_amount: existingPolicy.coverage_amount?.toString() || undefined,
-        deductible: existingPolicy.deductible?.toString() || undefined,
-        notes: existingPolicy.notes || undefined,
-        premium_payment_date: (existingPolicy as any).premium_payment_date || undefined,
+        insurer_id: selectedPolicy.insurer_id || undefined,
+        product_id: selectedPolicy.product_id || undefined,
+        policy_number: selectedPolicy.policy_number || undefined,
+        start_date: selectedPolicy.start_date,
+        end_date: selectedPolicy.end_date,
+        status: selectedPolicy.status || 'en_tramite',
+        premium: selectedPolicy.premium?.toString() || undefined,
+        payment_frequency: (selectedPolicy.payment_frequency === 'unico' ? 'mensual' : selectedPolicy.payment_frequency) || 'mensual',
+        coverage_amount: selectedPolicy.coverage_amount?.toString() || undefined,
+        deductible: selectedPolicy.deductible?.toString() || undefined,
+        notes: selectedPolicy.notes || undefined,
+        premium_payment_date: (selectedPolicy as any).premium_payment_date || undefined,
       });
     }
-  }, [existingPolicy]);
+  }, [selectedPolicy]);
+
+  // Populate beneficiaries when they load
   useEffect(() => {
     if (existingBeneficiaries?.length) {
       setBeneficiaries(
         existingBeneficiaries.map((b) => {
-          // Handle identification_type mapping (ruc -> rif for legacy data)
           const idType = b.identification_type === 'ruc' 
             ? 'rif' 
             : (b.identification_type || 'cedula');
@@ -159,6 +194,8 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
           };
         })
       );
+    } else {
+      setBeneficiaries([]);
     }
   }, [existingBeneficiaries]);
 
@@ -206,17 +243,17 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
 
   // Fetch existing policy advisors
   const { data: existingPolicyAdvisors } = useQuery({
-    queryKey: ['policy-advisors', policyId],
+    queryKey: ['policy-advisors', selectedPolicyId],
     queryFn: async () => {
-      if (!policyId) return [];
+      if (!selectedPolicyId) return [];
       const { data, error } = await supabase
         .from('policy_advisors')
         .select('*')
-        .eq('policy_id', policyId);
+        .eq('policy_id', selectedPolicyId);
       if (error) throw error;
       return data;
     },
-    enabled: !!policyId,
+    enabled: !!selectedPolicyId,
   });
 
   // Populate advisor data from policy_advisors
@@ -235,7 +272,7 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
 
   const updateClientMutation = useMutation({
     mutationFn: async () => {
-      if (!clientData || !policyData || !user || !clientId) {
+      if (!clientData || !policyData || !user || !clientId || !selectedPolicyId) {
         throw new Error('Datos incompletos');
       }
 
@@ -262,80 +299,74 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
 
       if (clientError) throw clientError;
 
-      // 2. Update or create policy
-      if (policyId) {
-        const { error: policyError } = await supabase
-          .from('policies')
-          .update({
-            insurer_id: policyData.insurer_id || null,
-            product_id: policyData.product_id || null,
-            policy_number: policyData.policy_number || null,
-            start_date: policyData.start_date,
-            end_date: policyData.end_date,
-            status: policyData.status,
-            premium: policyData.premium ? parseFloat(policyData.premium) : null,
-            payment_frequency: policyData.payment_frequency,
-            coverage_amount: policyData.coverage_amount ? parseFloat(policyData.coverage_amount) : null,
-            deductible: policyData.deductible ? parseFloat(policyData.deductible) : null,
-            notes: policyData.notes || null,
-          })
-          .eq('id', policyId);
+      // 2. Update the selected policy
+      const { error: policyError } = await supabase
+        .from('policies')
+        .update({
+          insurer_id: policyData.insurer_id || null,
+          product_id: policyData.product_id || null,
+          policy_number: policyData.policy_number || null,
+          start_date: policyData.start_date,
+          end_date: policyData.end_date,
+          status: policyData.status,
+          premium: policyData.premium ? parseFloat(policyData.premium) : null,
+          payment_frequency: policyData.payment_frequency,
+          coverage_amount: policyData.coverage_amount ? parseFloat(policyData.coverage_amount) : null,
+          deductible: policyData.deductible ? parseFloat(policyData.deductible) : null,
+          notes: policyData.notes || null,
+        })
+        .eq('id', selectedPolicyId);
 
-        if (policyError) throw policyError;
-      }
+      if (policyError) throw policyError;
 
       // 3. Update beneficiaries - delete existing and insert new
-      if (policyId) {
-        await supabase.from('beneficiaries').delete().eq('policy_id', policyId);
+      await supabase.from('beneficiaries').delete().eq('policy_id', selectedPolicyId);
 
-        if (beneficiaries.length > 0) {
-          const beneficiariesToInsert = beneficiaries.map((b) => ({
-            policy_id: policyId,
-            first_name: b.first_name,
-            last_name: b.last_name,
-            identification_type: b.identification_type || 'cedula',
-            identification_number: b.identification_number || null,
-            relationship: b.relationship,
-            percentage: 100, // Default to 100% since we removed percentage field
-            birth_date: b.birth_date || null,
-            phone: b.phone || null,
-            email: b.email || null,
-          }));
+      if (beneficiaries.length > 0) {
+        const beneficiariesToInsert = beneficiaries.map((b) => ({
+          policy_id: selectedPolicyId,
+          first_name: b.first_name,
+          last_name: b.last_name,
+          identification_type: b.identification_type || 'cedula',
+          identification_number: b.identification_number || null,
+          relationship: b.relationship,
+          percentage: 100,
+          birth_date: b.birth_date || null,
+          phone: b.phone || null,
+          email: b.email || null,
+        }));
 
-          const { error: beneficiariesError } = await supabase
-            .from('beneficiaries')
-            .insert(beneficiariesToInsert);
+        const { error: beneficiariesError } = await supabase
+          .from('beneficiaries')
+          .insert(beneficiariesToInsert);
 
         if (beneficiariesError) throw beneficiariesError;
-        }
       }
 
       // 4. Update policy advisors - delete existing and insert new
-      if (policyId) {
-        await supabase.from('policy_advisors').delete().eq('policy_id', policyId);
-        
-        const advisorsToInsert = [];
-        if (policyData.primary_advisor_id) {
-          advisorsToInsert.push({
-            policy_id: policyId,
-            advisor_id: policyData.primary_advisor_id,
-            advisor_role: 'principal',
-          });
-        }
-        if (policyData.secondary_advisor_id) {
-          advisorsToInsert.push({
-            policy_id: policyId,
-            advisor_id: policyData.secondary_advisor_id,
-            advisor_role: 'secundario',
-          });
-        }
-        
-        if (advisorsToInsert.length > 0) {
-          const { error: advisorsError } = await supabase
-            .from('policy_advisors')
-            .insert(advisorsToInsert);
-          if (advisorsError) throw advisorsError;
-        }
+      await supabase.from('policy_advisors').delete().eq('policy_id', selectedPolicyId);
+      
+      const advisorsToInsert = [];
+      if (policyData.primary_advisor_id) {
+        advisorsToInsert.push({
+          policy_id: selectedPolicyId,
+          advisor_id: policyData.primary_advisor_id,
+          advisor_role: 'principal',
+        });
+      }
+      if (policyData.secondary_advisor_id) {
+        advisorsToInsert.push({
+          policy_id: selectedPolicyId,
+          advisor_id: policyData.secondary_advisor_id,
+          advisor_role: 'secundario',
+        });
+      }
+      
+      if (advisorsToInsert.length > 0) {
+        const { error: advisorsError } = await supabase
+          .from('policy_advisors')
+          .insert(advisorsToInsert);
+        if (advisorsError) throw advisorsError;
       }
 
       // 5. Create audit log
@@ -348,6 +379,7 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
         record_type: 'client',
         details: {
           client_name: `${clientData.first_name} ${clientData.last_name}`,
+          policy_id: selectedPolicyId,
           policy_number: policyData.policy_number,
           primary_advisor_id: policyData.primary_advisor_id || null,
           secondary_advisor_id: policyData.secondary_advisor_id || null,
@@ -363,6 +395,7 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
       });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['client', clientId] });
+      queryClient.invalidateQueries({ queryKey: ['client-policies', clientId] });
       handleClose();
     },
     onError: (error: Error) => {
@@ -379,12 +412,12 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
     setClientData(null);
     setPolicyData(null);
     setBeneficiaries([]);
-    setPolicyId(null);
+    setSelectedPolicyId(null);
     onOpenChange(false);
   };
 
   const handleNext = () => {
-    if (currentStep < 4) {
+    if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -399,22 +432,118 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
     updateClientMutation.mutate();
   };
 
-  const canProceed = () => {
-    switch (currentStep) {
-      case 1:
-        return clientData && clientData.identification_number && clientData.first_name && clientData.last_name;
-      case 2:
-        return policyData && policyData.start_date && policyData.end_date;
-      case 3:
-        return true;
-      case 4:
-        return true;
-      default:
-        return false;
+  const handlePolicySelect = (policyId: string) => {
+    setSelectedPolicyId(policyId);
+    // Reset beneficiaries when changing policy
+    setBeneficiaries([]);
+  };
+
+  // Determine which step content to show based on whether we have multiple policies
+  const getStepContent = () => {
+    if (hasMultiplePolicies) {
+      // With multiple policies: 1=Client, 2=PolicySelection, 3=Policy, 4=Beneficiaries, 5=Review
+      switch (currentStep) {
+        case 1:
+          return <ClientStep data={clientData} onChange={setClientData} />;
+        case 2:
+          return (
+            <PolicySelectionStep
+              policies={clientPolicies || []}
+              selectedPolicyId={selectedPolicyId}
+              onSelect={handlePolicySelect}
+            />
+          );
+        case 3:
+          return (
+            <PolicyStep
+              data={policyData}
+              onChange={setPolicyData}
+              insurers={insurers || []}
+              products={products || []}
+              advisors={advisors || []}
+            />
+          );
+        case 4:
+          return <BeneficiariesStep beneficiaries={beneficiaries} onChange={setBeneficiaries} />;
+        case 5:
+          return (
+            <ReviewStep
+              clientData={clientData}
+              policyData={policyData}
+              beneficiaries={beneficiaries}
+              insurers={insurers || []}
+              products={products || []}
+            />
+          );
+        default:
+          return null;
+      }
+    } else {
+      // Single policy: 1=Client, 2=Policy, 3=Beneficiaries, 4=Review
+      switch (currentStep) {
+        case 1:
+          return <ClientStep data={clientData} onChange={setClientData} />;
+        case 2:
+          return (
+            <PolicyStep
+              data={policyData}
+              onChange={setPolicyData}
+              insurers={insurers || []}
+              products={products || []}
+              advisors={advisors || []}
+            />
+          );
+        case 3:
+          return <BeneficiariesStep beneficiaries={beneficiaries} onChange={setBeneficiaries} />;
+        case 4:
+          return (
+            <ReviewStep
+              clientData={clientData}
+              policyData={policyData}
+              beneficiaries={beneficiaries}
+              insurers={insurers || []}
+              products={products || []}
+            />
+          );
+        default:
+          return null;
+      }
     }
   };
 
-  const progress = (currentStep / steps.length) * 100;
+  const canProceed = () => {
+    if (hasMultiplePolicies) {
+      switch (currentStep) {
+        case 1:
+          return clientData && clientData.identification_number && clientData.first_name && clientData.last_name;
+        case 2:
+          return !!selectedPolicyId;
+        case 3:
+          return policyData && policyData.start_date && policyData.end_date;
+        case 4:
+          return true;
+        case 5:
+          return true;
+        default:
+          return false;
+      }
+    } else {
+      switch (currentStep) {
+        case 1:
+          return clientData && clientData.identification_number && clientData.first_name && clientData.last_name;
+        case 2:
+          return policyData && policyData.start_date && policyData.end_date;
+        case 3:
+          return true;
+        case 4:
+          return true;
+        default:
+          return false;
+      }
+    }
+  };
+
+  const progress = (currentStep / totalSteps) * 100;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -455,28 +584,7 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
         </div>
 
         <div className="flex-1 overflow-y-auto py-4">
-          {currentStep === 1 && <ClientStep data={clientData} onChange={setClientData} />}
-          {currentStep === 2 && (
-            <PolicyStep
-              data={policyData}
-              onChange={setPolicyData}
-              insurers={insurers || []}
-              products={products || []}
-              advisors={advisors || []}
-            />
-          )}
-          {currentStep === 3 && (
-            <BeneficiariesStep beneficiaries={beneficiaries} onChange={setBeneficiaries} />
-          )}
-          {currentStep === 4 && (
-            <ReviewStep
-              clientData={clientData}
-              policyData={policyData}
-              beneficiaries={beneficiaries}
-              insurers={insurers || []}
-              products={products || []}
-            />
-          )}
+          {getStepContent()}
         </div>
 
         <div className="flex justify-between pt-4 border-t">
@@ -485,7 +593,7 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
             Anterior
           </Button>
 
-          {currentStep < 4 ? (
+          {currentStep < totalSteps ? (
             <Button onClick={handleNext} disabled={!canProceed()}>
               Siguiente
               <ChevronRight className="h-4 w-4 ml-1" />
