@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
+import { getUserFriendlyError } from '@/lib/errorMessages';
 
 const signUpSchema = z.object({
   fullName: z.string().trim().min(2, 'El nombre debe tener al menos 2 caracteres').max(100, 'El nombre debe tener menos de 100 caracteres'),
@@ -66,7 +67,7 @@ export function SignUpForm({ onToggleMode }: SignUpFormProps) {
         } else {
           toast({
             title: 'Error al registrarse',
-            description: error.message,
+            description: getUserFriendlyError(error),
             variant: 'destructive',
           });
         }

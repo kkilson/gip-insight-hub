@@ -18,6 +18,7 @@ import { BeneficiariesStep } from './steps/BeneficiariesStep';
 import { ReviewStep } from './steps/ReviewStep';
 import { PolicySelectionStep } from './steps/PolicySelectionStep';
 import type { ClientFormData, PolicyFormData, BeneficiaryFormData } from './types';
+import { getUserFriendlyError } from '@/lib/errorMessages';
 
 interface ClientEditWizardProps {
   clientId: string | null;
@@ -401,7 +402,7 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
     onError: (error: Error) => {
       toast({
         title: 'Error',
-        description: error.message || 'No se pudo actualizar el cliente',
+        description: getUserFriendlyError(error),
         variant: 'destructive',
       });
     },

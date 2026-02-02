@@ -24,6 +24,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { type CostCenter } from '@/hooks/useFinances';
+import { getUserFriendlyError } from '@/lib/errorMessages';
 
 const formSchema = z.object({
   code: z.string().min(1, 'Código requerido').max(10),
@@ -110,7 +111,7 @@ export function CostCenterFormDialog({ open, onOpenChange, costCenter }: CostCen
     onError: (error: Error) => {
       toast({
         title: 'Error',
-        description: error.message,
+        description: getUserFriendlyError(error),
         variant: 'destructive',
       });
     },

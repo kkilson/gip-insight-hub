@@ -18,6 +18,7 @@ import { PolicyStep } from './steps/PolicyStep';
 import { BeneficiariesStep } from './steps/BeneficiariesStep';
 import { ReviewStep } from './steps/ReviewStep';
 import type { ClientFormData, PolicyFormData, BeneficiaryFormData } from './types';
+import { getUserFriendlyError } from '@/lib/errorMessages';
 
 interface ClientFormWizardProps {
   open: boolean;
@@ -219,7 +220,7 @@ export function ClientFormWizard({ open, onOpenChange }: ClientFormWizardProps) 
     onError: (error: Error) => {
       toast({
         title: 'Error',
-        description: error.message || 'No se pudo crear el cliente',
+        description: getUserFriendlyError(error),
         variant: 'destructive',
       });
     },
