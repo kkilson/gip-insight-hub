@@ -39,9 +39,71 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+    // ============================================
+    // AUTHENTICATION: Validate JWT token
+    // ============================================
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      console.error('[process-renewals] Missing or invalid Authorization header');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized: Missing authentication token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create client with user's auth token to validate JWT
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Validate the JWT token
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
     
+    if (claimsError || !claimsData?.claims) {
+      console.error('[process-renewals] Invalid JWT token:', claimsError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized: Invalid authentication token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+    console.log(`[process-renewals] Authenticated user: ${userId}`);
+
+    // ============================================
+    // AUTHORIZATION: Check user has required role
+    // ============================================
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const { data: userRole, error: roleError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .single();
+
+    if (roleError || !userRole) {
+      console.error('[process-renewals] User has no role assigned:', roleError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Forbidden: No role assigned to user' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Only allow users with acceso_total or revision_edicion_1 roles
+    const allowedRoles = ['acceso_total', 'revision_edicion_1'];
+    if (!allowedRoles.includes(userRole.role)) {
+      console.error(`[process-renewals] User role '${userRole.role}' not authorized`);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Forbidden: Insufficient permissions to process renewals' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`[process-renewals] User authorized with role: ${userRole.role}`);
 
     // Get today's date in YYYY-MM-DD format
     const today = new Date().toISOString().split('T')[0];
