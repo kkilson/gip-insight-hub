@@ -24,6 +24,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useChartOfAccounts, type ChartOfAccount } from '@/hooks/useFinances';
+import { getUserFriendlyError } from '@/lib/errorMessages';
 
 const formSchema = z.object({
   code: z.string().min(1, 'Código requerido'),
@@ -145,7 +146,7 @@ export function AccountFormDialog({ open, onOpenChange, account }: AccountFormDi
     onError: (error: Error) => {
       toast({
         title: 'Error',
-        description: error.message,
+        description: getUserFriendlyError(error),
         variant: 'destructive',
       });
     },

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { getUserFriendlyError } from '@/lib/errorMessages';
 
 const loginSchema = z.object({
   email: z.string().trim().email('Correo electrónico inválido').max(255, 'El correo debe tener menos de 255 caracteres'),
@@ -66,7 +67,7 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
         } else {
           toast({
             title: 'Error al iniciar sesión',
-            description: error.message,
+            description: getUserFriendlyError(error),
             variant: 'destructive',
           });
         }

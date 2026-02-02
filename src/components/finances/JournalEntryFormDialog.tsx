@@ -27,6 +27,7 @@ import { useActiveCostCenters, useLatestExchangeRates, useLeafAccounts, type Jou
 import { useAuthContext } from '@/contexts/AuthContext';
 import { Plus, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { getUserFriendlyError } from '@/lib/errorMessages';
 
 const lineSchema = z.object({
   account_id: z.string().min(1, 'Cuenta requerida'),
@@ -253,7 +254,7 @@ export function JournalEntryFormDialog({ open, onOpenChange, entry }: JournalEnt
     onError: (error: Error) => {
       toast({
         title: 'Error',
-        description: error.message,
+        description: getUserFriendlyError(error),
         variant: 'destructive',
       });
     },
