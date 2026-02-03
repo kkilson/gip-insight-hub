@@ -56,6 +56,7 @@ interface ImportResults {
   policiesCreated: number;
   policiesUpdated: number;
   beneficiariesCreated: number;
+  advisorsAssigned: number;
   failed: number;
 }
 
@@ -126,6 +127,19 @@ export function ClientImportWizard({ open, onOpenChange }: ClientImportWizardPro
         .from('policies')
         .select('id, policy_number')
         .order('policy_number');
+      return data || [];
+    },
+    enabled: open,
+  });
+
+  const { data: advisors = [] } = useQuery({
+    queryKey: ['advisors-for-import'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('advisors')
+        .select('id, full_name, is_active')
+        .eq('is_active', true)
+        .order('full_name');
       return data || [];
     },
     enabled: open,
@@ -235,12 +249,13 @@ export function ClientImportWizard({ open, onOpenChange }: ClientImportWizardPro
       existingClients,
       existingPolicies,
       insurers,
-      products
+      products,
+      advisors
     );
     
     setValidatedRows(validated);
     setCurrentStep(3);
-  }, [sheetData, existingClients, existingPolicies, insurers, products]);
+  }, [sheetData, existingClients, existingPolicies, insurers, products, advisors]);
 
   const importMutation = useMutation({
     mutationFn: async () => {
@@ -251,6 +266,7 @@ export function ClientImportWizard({ open, onOpenChange }: ClientImportWizardPro
         policiesCreated: 0,
         policiesUpdated: 0,
         beneficiariesCreated: 0,
+        advisorsAssigned: 0,
         failed: 0,
       };
 
@@ -358,7 +374,36 @@ export function ClientImportWizard({ open, onOpenChange }: ClientImportWizardPro
             results.policiesCreated++;
           }
 
-          // 3. Create beneficiaries
+          // 3. Handle policy advisors (delete existing, insert new)
+          if (row.resolvedPrimaryAdvisorId || row.resolvedSecondaryAdvisorId) {
+            // Delete existing advisors for this policy first
+            await supabase
+              .from('policy_advisors')
+              .delete()
+              .eq('policy_id', policyId);
+            
+            // Insert primary advisor
+            if (row.resolvedPrimaryAdvisorId) {
+              const { error } = await supabase.from('policy_advisors').insert({
+                policy_id: policyId,
+                advisor_id: row.resolvedPrimaryAdvisorId,
+                advisor_role: 'principal',
+              });
+              if (!error) results.advisorsAssigned++;
+            }
+            
+            // Insert secondary advisor
+            if (row.resolvedSecondaryAdvisorId) {
+              const { error } = await supabase.from('policy_advisors').insert({
+                policy_id: policyId,
+                advisor_id: row.resolvedSecondaryAdvisorId,
+                advisor_role: 'secundario',
+              });
+              if (!error) results.advisorsAssigned++;
+            }
+          }
+
+          // 4. Create beneficiaries
           for (const beneficiary of row.beneficiaries) {
             if (!beneficiary.first_name && !beneficiary.last_name) continue;
             
@@ -402,6 +447,7 @@ export function ClientImportWizard({ open, onOpenChange }: ClientImportWizardPro
           policies_created: results.policiesCreated,
           policies_updated: results.policiesUpdated,
           beneficiaries_created: results.beneficiariesCreated,
+          advisors_assigned: results.advisorsAssigned,
           failed: results.failed,
         },
       }]);
@@ -413,11 +459,12 @@ export function ClientImportWizard({ open, onOpenChange }: ClientImportWizardPro
       setImportPhase('');
       toast({
         title: 'Importación completada',
-        description: `${results.policiesCreated} pólizas creadas, ${results.policiesUpdated} actualizadas, ${results.clientsCreated} tomadores nuevos, ${results.beneficiariesCreated} beneficiarios`,
+        description: `${results.policiesCreated} pólizas creadas, ${results.policiesUpdated} actualizadas, ${results.clientsCreated} tomadores nuevos, ${results.beneficiariesCreated} beneficiarios, ${results.advisorsAssigned} asesores asignados`,
       });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['policies'] });
       queryClient.invalidateQueries({ queryKey: ['beneficiaries'] });
+      queryClient.invalidateQueries({ queryKey: ['advisors'] });
     },
     onError: (error: Error) => {
       toast({
@@ -553,7 +600,7 @@ export function ClientImportWizard({ open, onOpenChange }: ClientImportWizardPro
               </TabsContent>
               
               <TabsContent value="instructions" className="mt-4">
-                <ImportInstructionsTab insurers={insurers} products={products} />
+                <ImportInstructionsTab insurers={insurers} products={products} advisors={advisors} />
               </TabsContent>
             </Tabs>
           )}

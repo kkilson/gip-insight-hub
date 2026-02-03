@@ -82,6 +82,10 @@ export function autoMapUnifiedColumns(headers: string[]): UnifiedColumnMapping[]
       dbField = 'premium_payment_date';
     } else if ((h.includes('nota') && h.includes('poliza')) || h === 'notas póliza') {
       dbField = 'policy_notes';
+    } else if (h.includes('asesor') && (h.includes('principal') || h.includes('1') || (!h.includes('secundario') && !h.includes('2')))) {
+      dbField = 'primary_advisor_name';
+    } else if (h.includes('asesor') && (h.includes('secundario') || h.includes('2'))) {
+      dbField = 'secondary_advisor_name';
     }
     
     // Client (Tomador) fields - check for "tomador" or "cliente" keyword
@@ -222,6 +226,8 @@ function extractPolicyData(
     deductible: extractField(row, mappings, 'deductible') || undefined,
     premium_payment_date: parseDate(extractField(row, mappings, 'premium_payment_date')),
     notes: extractField(row, mappings, 'policy_notes') || undefined,
+    primary_advisor_name: extractField(row, mappings, 'primary_advisor_name') || undefined,
+    secondary_advisor_name: extractField(row, mappings, 'secondary_advisor_name') || undefined,
   };
 }
 
@@ -287,7 +293,8 @@ export function validateUnifiedImport(
   existingClients: Array<{ id: string; identification_number: string }>,
   existingPolicies: Array<{ id: string; policy_number: string | null }>,
   insurers: Array<{ id: string; name: string }>,
-  products: Array<{ id: string; name: string; insurer_id: string | null }>
+  products: Array<{ id: string; name: string; insurer_id: string | null }>,
+  advisors: Array<{ id: string; full_name: string; is_active: boolean | null }> = []
 ): ValidatedUnifiedRow[] {
   // Group rows by policy number
   const groupedByPolicy = new Map<string, ParsedRow[]>();
@@ -359,6 +366,30 @@ export function validateUnifiedImport(
       }
     }
     
+    // Resolve advisors
+    let resolvedPrimaryAdvisorId: string | undefined;
+    let resolvedSecondaryAdvisorId: string | undefined;
+    
+    if (policyData.primary_advisor_name && advisors.length > 0) {
+      const primaryAdvisor = advisors.find(a => 
+        a.is_active && 
+        a.full_name.toLowerCase().includes(policyData.primary_advisor_name!.toLowerCase())
+      );
+      if (primaryAdvisor) {
+        resolvedPrimaryAdvisorId = primaryAdvisor.id;
+      }
+    }
+    
+    if (policyData.secondary_advisor_name && advisors.length > 0) {
+      const secondaryAdvisor = advisors.find(a => 
+        a.is_active && 
+        a.full_name.toLowerCase().includes(policyData.secondary_advisor_name!.toLowerCase())
+      );
+      if (secondaryAdvisor) {
+        resolvedSecondaryAdvisorId = secondaryAdvisor.id;
+      }
+    }
+    
     // Validate required fields
     if (!policyData.policy_number) {
       errors.push({ field: 'policy_number', message: 'Número de póliza requerido' });
@@ -400,6 +431,8 @@ export function validateUnifiedImport(
       existingPolicyId: existingPolicy?.id,
       resolvedInsurerId,
       resolvedProductId,
+      resolvedPrimaryAdvisorId,
+      resolvedSecondaryAdvisorId,
       errors,
       isValid: errors.length === 0,
       isUpdate: !!existingPolicy,
@@ -423,11 +456,17 @@ export function checkUnifiedRequiredFieldsMapped(
 
 // Download unified template with all 7 beneficiaries
 export function downloadUnifiedTemplate() {
-  // Build headers with all 7 beneficiaries
+  // Build headers with all fields including advisors
   const baseHeaders = [
+    // Policy fields
     'Número Póliza', 'Aseguradora', 'Producto', 'Fecha Inicio', 'Fecha Fin', 
-    'Prima', 'Estado', 'Frecuencia Pago', 'Fecha Pago Prima',
-    'Cédula Tomador', 'Nombres Tomador', 'Apellidos Tomador', 'Email Tomador', 'Teléfono Tomador',
+    'Prima', 'Suma Asegurada', 'Deducible', 'Estado', 'Frecuencia Pago', 'Fecha Pago Prima',
+    'Asesor Principal', 'Asesor Secundario', 'Notas Póliza',
+    // Client (Tomador) fields
+    'Tipo ID Tomador', 'Cédula Tomador', 'Nombres Tomador', 'Apellidos Tomador', 
+    'Email Tomador', 'Teléfono Tomador', 'Móvil Tomador',
+    'Dirección Tomador', 'Ciudad Tomador', 'Estado Tomador',
+    'F. Nacimiento Tomador', 'Ocupación Tomador', 'Trabajo Tomador',
   ];
   
   // Add beneficiary columns (7 beneficiaries with all fields)
@@ -435,7 +474,7 @@ export function downloadUnifiedTemplate() {
   for (let i = 1; i <= 7; i++) {
     beneficiaryHeaders.push(
       `Nombre Ben. ${i}`, `Apellido Ben. ${i}`, `Parentesco ${i}`, 
-      `Cédula Ben. ${i}`, `F.Nac Ben. ${i}`, `Tel Ben. ${i}`, `Email Ben. ${i}`
+      `Tipo ID Ben. ${i}`, `Cédula Ben. ${i}`, `F.Nac Ben. ${i}`, `Tel Ben. ${i}`, `Email Ben. ${i}`
     );
   }
   
@@ -443,26 +482,38 @@ export function downloadUnifiedTemplate() {
   
   // Sample data row 1
   const row1 = [
+    // Policy
     'POL-2024-001', 'Mercantil Venezuela', 'GLOBAL BENEFITS PREMIUM', '2024-01-01', '2025-01-01', 
-    '1500', 'vigente', 'mensual', '2024-02-01',
-    'V-12345678', 'Juan', 'Pérez', 'juan@email.com', '0412-1234567',
+    '1500', '50000', '500', 'vigente', 'mensual', '2024-02-01',
+    'MARIA GABRIELA ESTABA', '', 'Cliente corporativo',
+    // Client
+    'cedula', 'V-12345678', 'Juan', 'Pérez', 
+    'juan@email.com', '0212-1234567', '0412-1234567',
+    'Av. Principal, Edificio 123', 'Caracas', 'Distrito Capital',
+    '1985-06-15', 'Gerente', 'Empresa ABC',
     // Ben 1
-    'María', 'Pérez', 'conyuge', 'V-87654321', '1985-05-15', '0414-1111111', 'maria@email.com',
+    'María', 'Pérez', 'conyuge', 'cedula', 'V-87654321', '1985-05-15', '0414-1111111', 'maria@email.com',
     // Ben 2
-    'Carlos', 'Pérez', 'hijo', 'V-11111111', '2010-03-20', '0412-2222222', '',
+    'Carlos', 'Pérez', 'hijo', 'cedula', 'V-11111111', '2010-03-20', '0412-2222222', '',
     // Ben 3-7 empty
-    ...Array(35).fill(''),
+    ...Array(40).fill(''),
   ];
   
   // Sample data row 2
   const row2 = [
+    // Policy
     'POL-2024-002', 'BMI', 'AZURE', '2024-02-01', '2025-02-01', 
-    '2000', 'vigente', 'anual', '2024-03-01',
-    'V-22222222', 'Ana', 'García', 'ana@email.com', '0414-9876543',
+    '2000', '100000', '1000', 'vigente', 'anual', '2024-03-01',
+    'LORENE BARANI', 'PAOLA BARANI', '',
+    // Client
+    'cedula', 'V-22222222', 'Ana', 'García', 
+    'ana@email.com', '0212-9876543', '0414-9876543',
+    'Calle 45, Qta. Azul', 'Valencia', 'Carabobo',
+    '1990-11-20', 'Ingeniero', 'Constructora XYZ',
     // Ben 1
-    'Pedro', 'García', 'conyuge', 'V-33333333', '1980-11-10', '0424-3333333', 'pedro@email.com',
+    'Pedro', 'García', 'conyuge', 'cedula', 'V-33333333', '1980-11-10', '0424-3333333', 'pedro@email.com',
     // Ben 2-7 empty
-    ...Array(42).fill(''),
+    ...Array(48).fill(''),
   ];
 
   const templateData = [headers, row1, row2];
@@ -470,7 +521,7 @@ export function downloadUnifiedTemplate() {
   const ws = XLSX.utils.aoa_to_sheet(templateData);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Importación');
-  XLSX.writeFile(wb, 'plantilla_importacion_unificada.xlsx');
+  XLSX.writeFile(wb, 'plantilla_importacion_completa.xlsx');
 }
 
 // Get detected beneficiary indices from mappings

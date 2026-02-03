@@ -83,12 +83,16 @@ export interface ValidatedUnifiedRow {
     deductible?: string;
     premium_payment_date?: string;
     notes?: string;
+    primary_advisor_name?: string;
+    secondary_advisor_name?: string;
   };
   beneficiaries: BeneficiaryData[];
   existingClientId?: string;
   existingPolicyId?: string;
   resolvedInsurerId?: string;
   resolvedProductId?: string;
+  resolvedPrimaryAdvisorId?: string;
+  resolvedSecondaryAdvisorId?: string;
   errors: ValidationError[];
   isValid: boolean;
   isUpdate: boolean; // true if policy already exists
@@ -121,6 +125,8 @@ export const UNIFIED_DB_FIELDS: UnifiedDBField[] = [
   { value: 'coverage_amount', label: 'Suma Asegurada', required: false, group: 'policy' },
   { value: 'deductible', label: 'Deducible', required: false, group: 'policy' },
   { value: 'policy_notes', label: 'Notas Póliza', required: false, group: 'policy' },
+  { value: 'primary_advisor_name', label: 'Asesor Principal', required: false, group: 'policy' },
+  { value: 'secondary_advisor_name', label: 'Asesor Secundario', required: false, group: 'policy' },
   
   // Client (Tomador) fields
   { value: 'client_identification_type', label: 'Tipo ID Tomador', required: false, group: 'client' },
