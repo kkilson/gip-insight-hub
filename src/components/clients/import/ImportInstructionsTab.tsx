@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Building2, 
@@ -8,12 +10,17 @@ import {
   Users, 
   FileSpreadsheet,
   CheckCircle2,
-  Info
+  Info,
+  UserCog,
+  Copy,
+  Check
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface InstructionsProps {
   insurers: Array<{ id: string; name: string }>;
   products: Array<{ id: string; name: string; insurer_id: string | null }>;
+  advisors: Array<{ id: string; full_name: string; is_active: boolean | null }>;
 }
 
 // Payment frequencies supported
@@ -55,12 +62,82 @@ const ID_TYPES = [
   { value: 'otro', label: 'Otro' },
 ];
 
-export function ImportInstructionsTab({ insurers, products }: InstructionsProps) {
+export function ImportInstructionsTab({ insurers, products, advisors }: InstructionsProps) {
+  const { toast } = useToast();
+  const [copiedSection, setCopiedSection] = useState<string | null>(null);
+
   // Group products by insurer for display
   const productsByInsurer = insurers.map(insurer => ({
     insurer,
     products: products.filter(p => p.insurer_id === insurer.id)
   })).filter(group => group.products.length > 0);
+
+  // Active advisors only
+  const activeAdvisors = advisors.filter(a => a.is_active);
+
+  const copyToClipboard = async (text: string, sectionName: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedSection(sectionName);
+      toast({
+        title: 'Copiado',
+        description: `${sectionName} copiado al portapapeles`,
+      });
+      setTimeout(() => setCopiedSection(null), 2000);
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'No se pudo copiar al portapapeles',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const copyAdvisors = () => {
+    const text = activeAdvisors.map(a => a.full_name).join('\n');
+    copyToClipboard(text, 'Asesores');
+  };
+
+  const copyInsurers = () => {
+    const text = insurers.map(i => i.name).join('\n');
+    copyToClipboard(text, 'Aseguradoras');
+  };
+
+  const copyFrequencies = () => {
+    const text = PAYMENT_FREQUENCIES.map(f => f.value).join('\n');
+    copyToClipboard(text, 'Frecuencias');
+  };
+
+  const copyStatuses = () => {
+    const text = POLICY_STATUSES.map(s => s.value).join('\n');
+    copyToClipboard(text, 'Estados');
+  };
+
+  const copyRelationships = () => {
+    const text = RELATIONSHIPS.map(r => r.value).join('\n');
+    copyToClipboard(text, 'Parentescos');
+  };
+
+  const copyIdTypes = () => {
+    const text = ID_TYPES.map(t => t.value).join('\n');
+    copyToClipboard(text, 'Tipos ID');
+  };
+
+  const CopyButton = ({ onClick, section }: { onClick: () => void; section: string }) => (
+    <Button 
+      variant="ghost" 
+      size="sm" 
+      onClick={onClick}
+      className="h-7 px-2 text-xs"
+    >
+      {copiedSection === section ? (
+        <Check className="h-3 w-3 mr-1 text-primary" />
+      ) : (
+        <Copy className="h-3 w-3 mr-1" />
+      )}
+      {copiedSection === section ? 'Copiado' : 'Copiar'}
+    </Button>
+  );
 
   return (
     <ScrollArea className="h-[60vh] pr-4">
@@ -91,8 +168,42 @@ export function ImportInstructionsTab({ insurers, products }: InstructionsProps)
               <p>Si el tomador (por cédula) o la póliza ya existen, se reutilizarán o actualizarán.</p>
             </div>
             <div className="flex items-start gap-2">
+              <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+              <p>Puedes asignar <strong>Asesor Principal</strong> y <strong>Asesor Secundario</strong> por nombre.</p>
+            </div>
+            <div className="flex items-start gap-2">
               <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
               <p className="text-muted-foreground">Los valores deben coincidir exactamente con las opciones listadas abajo (mayúsculas/minúsculas no importan).</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Advisors */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <UserCog className="h-4 w-4 text-primary" />
+                Asesores Disponibles ({activeAdvisors.length})
+              </CardTitle>
+              <CopyButton onClick={copyAdvisors} section="Asesores" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {activeAdvisors.map(advisor => (
+                <Badge 
+                  key={advisor.id} 
+                  variant="secondary" 
+                  className="text-xs cursor-pointer hover:bg-secondary/80"
+                  onClick={() => copyToClipboard(advisor.full_name, advisor.full_name)}
+                >
+                  {advisor.full_name}
+                </Badge>
+              ))}
+              {activeAdvisors.length === 0 && (
+                <p className="text-sm text-muted-foreground">No hay asesores activos</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -100,15 +211,23 @@ export function ImportInstructionsTab({ insurers, products }: InstructionsProps)
         {/* Insurers */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-primary" />
-              Aseguradoras Disponibles ({insurers.length})
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-primary" />
+                Aseguradoras Disponibles ({insurers.length})
+              </CardTitle>
+              <CopyButton onClick={copyInsurers} section="Aseguradoras" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {insurers.map(insurer => (
-                <Badge key={insurer.id} variant="secondary" className="text-xs">
+                <Badge 
+                  key={insurer.id} 
+                  variant="secondary" 
+                  className="text-xs cursor-pointer hover:bg-secondary/80"
+                  onClick={() => copyToClipboard(insurer.name, insurer.name)}
+                >
                   {insurer.name}
                 </Badge>
               ))}
@@ -127,10 +246,26 @@ export function ImportInstructionsTab({ insurers, products }: InstructionsProps)
           <CardContent className="space-y-4">
             {productsByInsurer.map(({ insurer, products: insurerProducts }) => (
               <div key={insurer.id}>
-                <p className="text-sm font-medium mb-2">{insurer.name}</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium">{insurer.name}</p>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="h-6 px-2 text-xs"
+                    onClick={() => copyToClipboard(insurerProducts.map(p => p.name).join('\n'), insurer.name)}
+                  >
+                    <Copy className="h-3 w-3 mr-1" />
+                    Copiar
+                  </Button>
+                </div>
                 <div className="flex flex-wrap gap-1.5">
                   {insurerProducts.map(product => (
-                    <Badge key={product.id} variant="outline" className="text-xs font-normal">
+                    <Badge 
+                      key={product.id} 
+                      variant="outline" 
+                      className="text-xs font-normal cursor-pointer hover:bg-muted"
+                      onClick={() => copyToClipboard(product.name, product.name)}
+                    >
                       {product.name}
                     </Badge>
                   ))}
@@ -146,15 +281,22 @@ export function ImportInstructionsTab({ insurers, products }: InstructionsProps)
         {/* Payment Frequencies */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <CreditCard className="h-4 w-4 text-primary" />
-              Frecuencias de Pago
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <CreditCard className="h-4 w-4 text-primary" />
+                Frecuencias de Pago
+              </CardTitle>
+              <CopyButton onClick={copyFrequencies} section="Frecuencias" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-2">
               {PAYMENT_FREQUENCIES.map(freq => (
-                <div key={freq.value} className="flex items-center gap-2 text-sm">
+                <div 
+                  key={freq.value} 
+                  className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted rounded px-1"
+                  onClick={() => copyToClipboard(freq.value, freq.value)}
+                >
                   <code className="bg-muted px-1.5 py-0.5 rounded text-xs">{freq.value}</code>
                   <span className="text-muted-foreground">→</span>
                   <span>{freq.label}</span>
@@ -167,15 +309,22 @@ export function ImportInstructionsTab({ insurers, products }: InstructionsProps)
         {/* Policy Statuses */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <FileSpreadsheet className="h-4 w-4 text-primary" />
-              Estados de Póliza
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <FileSpreadsheet className="h-4 w-4 text-primary" />
+                Estados de Póliza
+              </CardTitle>
+              <CopyButton onClick={copyStatuses} section="Estados" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {POLICY_STATUSES.map(status => (
-                <div key={status.value} className="flex items-center gap-1.5 text-sm bg-muted rounded-md px-2 py-1">
+                <div 
+                  key={status.value} 
+                  className="flex items-center gap-1.5 text-sm bg-muted rounded-md px-2 py-1 cursor-pointer hover:bg-muted/80"
+                  onClick={() => copyToClipboard(status.value, status.value)}
+                >
                   <code className="text-xs">{status.value}</code>
                   <span className="text-muted-foreground">({status.label})</span>
                 </div>
@@ -187,15 +336,22 @@ export function ImportInstructionsTab({ insurers, products }: InstructionsProps)
         {/* Relationships */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" />
-              Parentescos de Beneficiarios
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Users className="h-4 w-4 text-primary" />
+                Parentescos de Beneficiarios
+              </CardTitle>
+              <CopyButton onClick={copyRelationships} section="Parentescos" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-2">
               {RELATIONSHIPS.map(rel => (
-                <div key={rel.value} className="flex items-center gap-2 text-sm">
+                <div 
+                  key={rel.value} 
+                  className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted rounded px-1"
+                  onClick={() => copyToClipboard(rel.value, rel.value)}
+                >
                   <code className="bg-muted px-1.5 py-0.5 rounded text-xs">{rel.value}</code>
                   <span className="text-muted-foreground">→</span>
                   <span>{rel.label}</span>
@@ -208,15 +364,22 @@ export function ImportInstructionsTab({ insurers, products }: InstructionsProps)
         {/* Identification Types */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" />
-              Tipos de Identificación
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Users className="h-4 w-4 text-primary" />
+                Tipos de Identificación
+              </CardTitle>
+              <CopyButton onClick={copyIdTypes} section="Tipos ID" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {ID_TYPES.map(type => (
-                <div key={type.value} className="flex items-center gap-1.5 text-sm bg-muted rounded-md px-2 py-1">
+                <div 
+                  key={type.value} 
+                  className="flex items-center gap-1.5 text-sm bg-muted rounded-md px-2 py-1 cursor-pointer hover:bg-muted/80"
+                  onClick={() => copyToClipboard(type.value, type.value)}
+                >
                   <code className="text-xs">{type.value}</code>
                   <span className="text-muted-foreground">({type.label})</span>
                 </div>
@@ -237,19 +400,19 @@ export function ImportInstructionsTab({ insurers, products }: InstructionsProps)
             <div>
               <p className="font-medium mb-1">Póliza:</p>
               <p className="text-muted-foreground text-xs">
-                Número Póliza, Aseguradora, Producto, Fecha Inicio, Fecha Fin, Prima, Estado, Frecuencia Pago, Fecha Pago Prima
+                Número Póliza, Aseguradora, Producto, Fecha Inicio, Fecha Fin, Prima, Suma Asegurada, Deducible, Estado, Frecuencia Pago, Fecha Pago Prima, Asesor Principal, Asesor Secundario, Notas Póliza
               </p>
             </div>
             <div>
               <p className="font-medium mb-1">Tomador:</p>
               <p className="text-muted-foreground text-xs">
-                Cédula Tomador, Nombres Tomador, Apellidos Tomador, Email Tomador, Teléfono Tomador, F.Nac Tomador
+                Tipo ID Tomador, Cédula Tomador, Nombres Tomador, Apellidos Tomador, Email Tomador, Teléfono Tomador, Móvil Tomador, Dirección Tomador, Ciudad Tomador, Estado Tomador, F.Nac Tomador, Ocupación Tomador, Trabajo Tomador
               </p>
             </div>
             <div>
               <p className="font-medium mb-1">Beneficiarios (1-7):</p>
               <p className="text-muted-foreground text-xs">
-                Nombre Ben. 1, Apellido Ben. 1, Parentesco 1, Cédula Ben. 1, F.Nac Ben. 1, Tel Ben. 1, Email Ben. 1
+                Nombre Ben. 1, Apellido Ben. 1, Parentesco 1, Tipo ID Ben. 1, Cédula Ben. 1, F.Nac Ben. 1, Tel Ben. 1, Email Ben. 1
               </p>
             </div>
           </CardContent>
