@@ -1,20 +1,15 @@
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Collection, calculateDaysOverdue, CollectionStatus } from '@/hooks/useCollections';
-import { useBrokerSettings } from '@/hooks/useBrokerSettings';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { FileText } from 'lucide-react';
-import { generatePremiumNoticePdf } from './generatePremiumNoticePdf';
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Collection, calculateDaysOverdue, CollectionStatus } from "@/hooks/useCollections";
+import { useBrokerSettings } from "@/hooks/useBrokerSettings";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { FileText } from "lucide-react";
+import { generatePremiumNoticePdf } from "./generatePremiumNoticePdf";
 
 interface CollectionDetailDialogProps {
   collection: Collection;
@@ -23,32 +18,31 @@ interface CollectionDetailDialogProps {
 }
 
 const statusLabels: Record<CollectionStatus, string> = {
-  pendiente: 'Pendiente',
-  contacto_asesor: 'Contacto Asesor',
-  cobrada: 'Cobrada',
+  pendiente: "Pendiente",
+  contacto_asesor: "Contacto Asesor",
+  cobrada: "Cobrada",
 };
 
 const paymentFrequencyLabels: Record<string, string> = {
-  mensual: 'Mensual',
-  mensual_10_cuotas: 'Mensual (10 cuotas)',
-  mensual_12_cuotas: 'Mensual (12 cuotas)',
-  bimensual: 'Bimensual',
-  trimestral: 'Trimestral',
-  semestral: 'Semestral',
-  anual: 'Anual',
+  mensual_10_cuotas: "Mensual (10 cuotas)",
+  mensual_12_cuotas: "Mensual (12 cuotas)",
+  bimensual: "Bimensual",
+  trimestral: "Trimestral",
+  semestral: "Semestral",
+  anual: "Anual",
 };
 
 export function CollectionDetailDialog({ collection, open, onOpenChange }: CollectionDetailDialogProps) {
   const { settings: brokerSettings } = useBrokerSettings();
 
   const { data: history } = useQuery({
-    queryKey: ['collection-history', collection.id],
+    queryKey: ["collection-history", collection.id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('collection_history')
-        .select('*')
-        .eq('collection_id', collection.id)
-        .order('changed_at', { ascending: false });
+        .from("collection_history")
+        .select("*")
+        .eq("collection_id", collection.id)
+        .order("changed_at", { ascending: false });
 
       if (error) throw error;
       return data;
@@ -61,9 +55,9 @@ export function CollectionDetailDialog({ collection, open, onOpenChange }: Colle
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-VE', {
-      style: 'currency',
-      currency: 'USD',
+    return new Intl.NumberFormat("es-VE", {
+      style: "currency",
+      currency: "USD",
       minimumFractionDigits: 2,
     }).format(amount);
   };
@@ -76,12 +70,7 @@ export function CollectionDetailDialog({ collection, open, onOpenChange }: Colle
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle>Detalle de Cobranza</DialogTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGeneratePdf}
-              className="mr-6"
-            >
+            <Button variant="outline" size="sm" onClick={handleGeneratePdf} className="mr-6">
               <FileText className="mr-2 h-4 w-4" />
               Aviso de Prima
             </Button>
@@ -93,23 +82,23 @@ export function CollectionDetailDialog({ collection, open, onOpenChange }: Colle
           <div className="flex items-center justify-between">
             <Badge
               variant={
-                collection.status === 'cobrada'
-                  ? 'default'
-                  : collection.status === 'contacto_asesor'
-                  ? 'secondary'
-                  : 'destructive'
+                collection.status === "cobrada"
+                  ? "default"
+                  : collection.status === "contacto_asesor"
+                    ? "secondary"
+                    : "destructive"
               }
               className="text-sm"
             >
               {statusLabels[collection.status]}
             </Badge>
-            {collection.status !== 'cobrada' && (
-              <span className={`text-sm ${daysOverdue > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+            {collection.status !== "cobrada" && (
+              <span className={`text-sm ${daysOverdue > 0 ? "text-destructive" : "text-muted-foreground"}`}>
                 {daysOverdue > 0
                   ? `${daysOverdue} días de mora`
                   : daysOverdue === 0
-                  ? 'Vence hoy'
-                  : `Vence en ${Math.abs(daysOverdue)} días`}
+                    ? "Vence hoy"
+                    : `Vence en ${Math.abs(daysOverdue)} días`}
               </span>
             )}
           </div>
@@ -121,13 +110,9 @@ export function CollectionDetailDialog({ collection, open, onOpenChange }: Colle
               <p className="font-medium">
                 {collection.client?.first_name} {collection.client?.last_name}
               </p>
-              {collection.client?.email && (
-                <p className="text-sm text-muted-foreground">{collection.client.email}</p>
-              )}
+              {collection.client?.email && <p className="text-sm text-muted-foreground">{collection.client.email}</p>}
               {(collection.client?.phone || collection.client?.mobile) && (
-                <p className="text-sm text-muted-foreground">
-                  {collection.client.phone || collection.client.mobile}
-                </p>
+                <p className="text-sm text-muted-foreground">{collection.client.phone || collection.client.mobile}</p>
               )}
             </div>
           </div>
@@ -136,9 +121,9 @@ export function CollectionDetailDialog({ collection, open, onOpenChange }: Colle
           <div>
             <h4 className="text-sm font-medium text-muted-foreground mb-2">Póliza</h4>
             <div className="rounded-lg bg-muted p-3 space-y-1">
-              <p className="font-mono font-medium">{collection.policy?.policy_number || 'Sin número'}</p>
+              <p className="font-mono font-medium">{collection.policy?.policy_number || "Sin número"}</p>
               <p className="text-sm text-muted-foreground">
-                {collection.policy?.insurer?.name || 'Sin aseguradora'}
+                {collection.policy?.insurer?.name || "Sin aseguradora"}
                 {collection.policy?.product?.name && ` - ${collection.policy.product.name}`}
               </p>
             </div>
@@ -160,15 +145,13 @@ export function CollectionDetailDialog({ collection, open, onOpenChange }: Colle
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Fecha de vencimiento</p>
-              <p className="font-medium">
-                {format(new Date(collection.due_date), 'dd MMM yyyy', { locale: es })}
-              </p>
+              <p className="font-medium">{format(new Date(collection.due_date), "dd MMM yyyy", { locale: es })}</p>
             </div>
             {collection.promised_date && (
               <div>
                 <p className="text-sm text-muted-foreground">Fecha prometida</p>
                 <p className="font-medium">
-                  {format(new Date(collection.promised_date), 'dd MMM yyyy', { locale: es })}
+                  {format(new Date(collection.promised_date), "dd MMM yyyy", { locale: es })}
                 </p>
               </div>
             )}
@@ -206,12 +189,10 @@ export function CollectionDetailDialog({ collection, open, onOpenChange }: Colle
                         </Badge>
                       </div>
                       <span className="text-xs text-muted-foreground">
-                        {format(new Date(h.changed_at), 'dd/MM/yyyy HH:mm', { locale: es })}
+                        {format(new Date(h.changed_at), "dd/MM/yyyy HH:mm", { locale: es })}
                       </span>
                     </div>
-                    {h.notes && (
-                      <p className="text-muted-foreground">{h.notes}</p>
-                    )}
+                    {h.notes && <p className="text-muted-foreground">{h.notes}</p>}
                   </div>
                 ))}
               </div>
