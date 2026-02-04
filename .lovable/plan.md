@@ -1,204 +1,112 @@
 
-# Plan: Mejoras al Sistema de Importación Masiva de Clientes
+# Plan: Correcciones en el Módulo de Cobranzas
 
-## Resumen del Problema
+## Problemas Identificados
 
-Tras revisar el código, encontré las siguientes brechas en la plantilla de importación:
+### Problema 1: Monto muestra Prima Anual en lugar de Cuota
+El sistema actualmente almacena y muestra el monto de la prima anual completa (`policies.premium`) en la tabla de cobranzas, en lugar de la cuota calculada según la frecuencia de pago.
 
-### Campos faltantes en la plantilla actual:
+**Ejemplo con la póliza 1-71-131626:**
+- Prima anual: $962.79
+- Frecuencia: Trimestral (4 cuotas/año)
+- **Cuota correcta:** $962.79 ÷ 4 = **$240.70**
+- **Actualmente muestra:** $962.79 (incorrecto)
 
-| Campo | Disponible en BD | En Plantilla | Estado |
-|-------|------------------|--------------|--------|
-| **Asesor Principal** | `policy_advisors.advisor_id` | No | Faltante |
-| **Asesor Secundario** | `policy_advisors.advisor_id` | No | Faltante |
-| **Tipo ID Tomador** | `clients.identification_type` | No | Faltante |
-| **Móvil Tomador** | `clients.mobile` | No | Faltante |
-| **Dirección Tomador** | `clients.address` | No | Faltante |
-| **Ciudad Tomador** | `clients.city` | No | Faltante |
-| **Estado Tomador** | `clients.province` | No | Faltante |
-| **F. Nacimiento Tomador** | `clients.birth_date` | No | Faltante |
-| **Ocupación Tomador** | `clients.occupation` | No | Faltante |
-| **Lugar Trabajo Tomador** | `clients.workplace` | No | Faltante |
-| **Suma Asegurada** | `policies.coverage_amount` | No | Faltante |
-| **Deducible** | `policies.deductible` | No | Faltante |
-| **Notas Póliza** | `policies.notes` | No | Faltante |
+### Problema 2: Fecha de Pago de Prima con valor inválido
+La póliza 1-71-131626 tiene almacenada la fecha `1902-08-19` en el campo `premium_payment_date`, lo cual es claramente un error de datos.
 
-### La pestaña "Instrucciones" ya existe pero le faltan:
-- Lista de **Asesores** disponibles para copiar/pegar
-- Formato de campos adicionales como Suma Asegurada, Deducible
+**Datos de la póliza:**
+- Fecha inicio: 14/01/2022
+- Fecha renovación: 14/01/2027  
+- Fecha pago prima: 19/08/1902 (ERROR)
+
+Además, encontré que el campo `premium_payment_date` **no se guarda** al editar una póliza (falta en el UPDATE de `ClientEditWizard.tsx`, líneas 304-318).
 
 ---
 
 ## Solución Propuesta
 
-### 1. Agregar campo de Asesores al sistema de importación
+### Cambio 1: Calcular cuota en sincronización y creación de cobranzas
 
-**Archivos a modificar:**
+**Archivo:** `src/hooks/useSyncCollections.ts`
+- Importar `calculateInstallment` de `@/lib/premiumCalculations`
+- En lugar de usar `p.premium` directamente, calcular la cuota:
 
-**`src/components/clients/import/unifiedTypes.ts`**
-- Agregar campos `primary_advisor_name` y `secondary_advisor_name` a los tipos
-- Agregar las definiciones de campo en `UNIFIED_DB_FIELDS`
+```typescript
+import { calculateInstallment } from '@/lib/premiumCalculations';
 
-**`src/components/clients/import/unifiedUtils.ts`**
-- Agregar lógica de auto-mapeo para detectar columnas de asesor
-- Agregar función para resolver asesor por nombre
-- Modificar `extractPolicyData` para incluir asesores
-- Actualizar `downloadUnifiedTemplate` para incluir columna de Asesor
+// Al crear nueva cobranza:
+const installment = calculateInstallment(p.premium, p.payment_frequency);
+const amount = installment || p.premium || 0;
 
-**`src/components/clients/ClientImportWizard.tsx`**
-- Agregar query para obtener lista de asesores activos
-- Pasar asesores a la validación
-- Agregar lógica para insertar en `policy_advisors` después de crear póliza
+// Al actualizar montos existentes, comparar con la cuota calculada
+```
 
-### 2. Expandir la plantilla con todos los campos
+### Cambio 2: Calcular cuota al marcar como cobrada (próxima cobranza)
 
-**`src/components/clients/import/unifiedUtils.ts`**
-- Actualizar `downloadUnifiedTemplate` para incluir todos los campos:
-  - Tipo ID Tomador
-  - Móvil Tomador  
-  - Dirección, Ciudad, Estado Tomador
-  - F. Nacimiento Tomador
-  - Ocupación, Trabajo Tomador
-  - Suma Asegurada, Deducible
-  - Notas Póliza
-  - **Asesor Principal, Asesor Secundario**
+**Archivo:** `src/hooks/useCollections.ts` (función `useMarkAsPaid`)
+- Cuando se crea la siguiente cobranza al marcar como "cobrada", calcular la cuota:
 
-### 3. Mejorar la pestaña "Instrucciones" como "Recursos"
+```typescript
+import { calculateInstallment } from '@/lib/premiumCalculations';
 
-**`src/components/clients/import/ImportInstructionsTab.tsx`**
-- Agregar nueva sección para **Asesores Disponibles** con lista copiable
-- Agregar botón "Copiar al portapapeles" para cada sección de recursos
-- Organizar mejor las secciones para facilitar el copy/paste
+// En lugar de usar collection.amount para la nueva cobranza:
+const { data: policy } = await supabase
+  .from('policies')
+  .select('premium, payment_frequency')
+  .eq('id', collection.policy_id)
+  .single();
+
+const installment = calculateInstallment(policy.premium, policy.payment_frequency);
+```
+
+### Cambio 3: Mostrar cuota calculada en Aviso de Prima PDF
+
+**Archivo:** `src/components/collections/generatePremiumNoticePdf.ts`
+- El monto que muestra ya viene del `collection.amount`, por lo que se corregirá automáticamente cuando la cobranza tenga el monto correcto
+- No requiere cambios adicionales si los datos son correctos
+
+### Cambio 4: Agregar premium_payment_date al UPDATE de póliza
+
+**Archivo:** `src/components/clients/ClientEditWizard.tsx`
+- En el mutation de update (línea ~304-318), agregar el campo faltante:
+
+```typescript
+.update({
+  // ... otros campos ...
+  notes: policyData.notes || null,
+  premium_payment_date: policyData.premium_payment_date || null, // AGREGAR
+})
+```
+
+### Cambio 5: Validar fechas en el formulario de póliza
+
+**Archivo:** `src/components/clients/steps/PolicyStep.tsx`
+- Agregar validación para prevenir fechas inválidas:
+  - La fecha de pago de prima no puede ser anterior a la fecha de inicio
+  - Si la fecha cargada es inválida (ej: año < 1950), recalcular automáticamente
 
 ---
 
-## Detalle Técnico de Implementación
+## Corrección de Datos Existentes
 
-### Paso 1: Actualizar tipos (unifiedTypes.ts)
-
-Agregar nuevos campos:
-```typescript
-// En UNIFIED_DB_FIELDS, agregar después de policy_notes:
-{ value: 'primary_advisor_name', label: 'Asesor Principal', required: false, group: 'policy' },
-{ value: 'secondary_advisor_name', label: 'Asesor Secundario', required: false, group: 'policy' },
-```
-
-### Paso 2: Actualizar auto-mapeo (unifiedUtils.ts)
-
-Agregar detección de columnas de asesor:
-```typescript
-// En autoMapUnifiedColumns, agregar:
-else if (h.includes('asesor') && (h.includes('principal') || h.includes('1'))) {
-  dbField = 'primary_advisor_name';
-} else if (h.includes('asesor') && (h.includes('secundario') || h.includes('2'))) {
-  dbField = 'secondary_advisor_name';
-}
-```
-
-### Paso 3: Resolver asesores en validación
-
-Agregar parámetro `advisors` a `validateUnifiedImport`:
-```typescript
-// Resolver asesor por nombre (fuzzy match)
-const primaryAdvisorName = extractField(row, mappings, 'primary_advisor_name');
-const primaryAdvisor = advisors.find(a => 
-  a.full_name.toLowerCase().includes(primaryAdvisorName?.toLowerCase() || '')
-);
-```
-
-### Paso 4: Insertar en policy_advisors
-
-En el mutation de importación, después de crear/actualizar póliza:
-```typescript
-// Si hay asesor principal
-if (row.resolvedPrimaryAdvisorId) {
-  await supabase.from('policy_advisors').insert({
-    policy_id: policyId,
-    advisor_id: row.resolvedPrimaryAdvisorId,
-    advisor_role: 'principal'
-  });
-}
-// Similar para asesor secundario
-```
-
-### Paso 5: Actualizar plantilla descargable
-
-Expandir headers de la plantilla:
-```typescript
-const baseHeaders = [
-  'Número Póliza', 'Aseguradora', 'Producto', 'Fecha Inicio', 'Fecha Fin', 
-  'Prima', 'Suma Asegurada', 'Deducible', 'Estado', 'Frecuencia Pago', 'Fecha Pago Prima',
-  'Asesor Principal', 'Asesor Secundario', 'Notas Póliza',
-  'Tipo ID Tomador', 'Cédula Tomador', 'Nombres Tomador', 'Apellidos Tomador', 
-  'Email Tomador', 'Teléfono Tomador', 'Móvil Tomador',
-  'Dirección Tomador', 'Ciudad Tomador', 'Estado Tomador',
-  'F. Nacimiento Tomador', 'Ocupación Tomador', 'Trabajo Tomador',
-];
-```
-
-### Paso 6: Mejorar ImportInstructionsTab con Asesores
-
-Agregar nueva sección de asesores:
-```tsx
-<Card>
-  <CardHeader className="pb-3">
-    <CardTitle className="text-base flex items-center gap-2">
-      <UserCog className="h-4 w-4 text-primary" />
-      Asesores Disponibles ({advisors.length})
-    </CardTitle>
-  </CardHeader>
-  <CardContent>
-    <div className="flex flex-wrap gap-2">
-      {advisors.filter(a => a.is_active).map(advisor => (
-        <Badge key={advisor.id} variant="secondary" className="text-xs cursor-pointer"
-          onClick={() => navigator.clipboard.writeText(advisor.full_name)}>
-          {advisor.full_name}
-        </Badge>
-      ))}
-    </div>
-    <Button variant="outline" size="sm" className="mt-2"
-      onClick={() => copyAllAdvisors()}>
-      <Copy className="h-3 w-3 mr-1" /> Copiar todos
-    </Button>
-  </CardContent>
-</Card>
-```
+Una vez aplicados los cambios, el usuario deberá:
+1. Ir a la sección de Clientes
+2. Editar la póliza de Mariana Rey (1-71-131626)
+3. La fecha de pago de prima se recalculará automáticamente o podrá editarla manualmente
+4. Guardar cambios
+5. En Cobranzas, hacer clic en "Sincronizar pólizas" para actualizar los montos
 
 ---
 
 ## Archivos a Modificar
 
-| Archivo | Cambios |
-|---------|---------|
-| `src/components/clients/import/unifiedTypes.ts` | Agregar campos de asesor |
-| `src/components/clients/import/unifiedUtils.ts` | Auto-mapeo de asesores, plantilla expandida |
-| `src/components/clients/ClientImportWizard.tsx` | Query asesores, insertar policy_advisors |
-| `src/components/clients/import/ImportInstructionsTab.tsx` | Sección de asesores con copy |
-
----
-
-## Asesores Disponibles (para referencia)
-
-Los 19 asesores activos en el sistema son:
-- ALICIA DUBEN
-- ANA CAMPELO
-- ANTONIO HERNANDEZ
-- AXEL GODOY
-- CAROLINA MAYORCA
-- DAYANITH BARRETO
-- EDUER CASTILLA
-- GUILLERMO SERRA
-- JULIETA MARISCAL
-- KEVIN KILSON
-- LORENE BARANI
-- MARIA GABRIELA ESTABA
-- MARIA GABRIELA VELAZQUEZ
-- MARIA ISABEL CURIE
-- MARIANA ARAQUE
-- MICHELLE BONELLI
-- MIRIAN VILLARROEL
-- PAOLA BARANI
-- SEIR ROJAS
+| Archivo | Cambio |
+|---------|--------|
+| `src/hooks/useSyncCollections.ts` | Calcular cuota en vez de prima anual |
+| `src/hooks/useCollections.ts` | Calcular cuota al crear siguiente cobranza |
+| `src/components/clients/ClientEditWizard.tsx` | Agregar premium_payment_date al update |
+| `src/components/clients/steps/PolicyStep.tsx` | Validar fechas inválidas |
 
 ---
 
@@ -206,14 +114,7 @@ Los 19 asesores activos en el sistema son:
 
 Después de implementar:
 
-1. La **plantilla descargable** incluirá TODOS los campos de la base de datos
-2. Los **asesores** podrán asignarse durante la importación masiva
-3. La pestaña **Instrucciones** mostrará:
-   - Lista de asesores (con botón copiar)
-   - Lista de aseguradoras (con botón copiar)  
-   - Productos por aseguradora
-   - Frecuencias de pago válidas
-   - Estados de póliza válidos
-   - Tipos de identificación
-   - Parentescos de beneficiarios
-4. Cada sección tendrá **botón de copiar** para facilitar el llenado del Excel
+1. **El monto en cobranzas** mostrará la cuota correcta (ej: $240.70 trimestral en vez de $962.79 anual)
+2. **El Aviso de Prima** mostrará el monto de la cuota correctamente
+3. **La fecha de pago de prima** podrá editarse correctamente
+4. **Fechas inválidas** serán detectadas y recalculadas automáticamente
