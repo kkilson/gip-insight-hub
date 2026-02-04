@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { calculateInstallment } from '@/lib/premiumCalculations';
 
 export function useSyncCollections() {
   const queryClient = useQueryClient();
@@ -48,24 +49,30 @@ export function useSyncCollections() {
           const key = `${p.id}-${p.premium_payment_date}`;
           return !existingKeys.has(key);
         })
-        .map((p) => ({
-          policy_id: p.id,
-          client_id: p.client_id,
-          due_date: p.premium_payment_date,
-          amount: p.premium || 0,
-          payment_frequency: p.payment_frequency || 'mensual',
-          status: 'pendiente' as const,
-        }));
+        .map((p) => {
+          // Calculate the installment amount based on frequency instead of using annual premium
+          const installment = calculateInstallment(p.premium, p.payment_frequency || 'mensual');
+          return {
+            policy_id: p.id,
+            client_id: p.client_id,
+            due_date: p.premium_payment_date,
+            amount: installment || p.premium || 0,
+            payment_frequency: p.payment_frequency || 'mensual',
+            status: 'pendiente' as const,
+          };
+        });
 
-      // Find collections that need their amount updated
+      // Find collections that need their amount updated (compare with calculated installment)
       const collectionsToUpdate: { id: string; amount: number }[] = [];
       policies.forEach((p) => {
         const existingList = existingByPolicy.get(p.id);
         if (existingList && p.premium !== null && p.premium !== undefined) {
+          // Calculate the correct installment amount
+          const correctInstallment = calculateInstallment(p.premium, p.payment_frequency || 'mensual') || p.premium;
           existingList.forEach((existing) => {
-            // Only update if amount is different (and existing amount is 0 or different)
-            if (existing.amount !== p.premium) {
-              collectionsToUpdate.push({ id: existing.id, amount: p.premium });
+            // Only update if amount differs from the correct installment
+            if (existing.amount !== correctInstallment) {
+              collectionsToUpdate.push({ id: existing.id, amount: correctInstallment });
             }
           });
         }

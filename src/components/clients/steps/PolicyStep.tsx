@@ -21,6 +21,19 @@ interface PolicyStepProps {
   advisors: Advisor[];
 }
 
+// Validate and fix invalid dates (e.g., years before 1950)
+const isValidDate = (dateStr: string | undefined): boolean => {
+  if (!dateStr) return false;
+  try {
+    const date = parse(dateStr, 'yyyy-MM-dd', new Date());
+    const year = date.getFullYear();
+    // Consider dates before 1950 or after 2100 as invalid
+    return year >= 1950 && year <= 2100;
+  } catch {
+    return false;
+  }
+};
+
 // Calculate next premium payment date based on start date and frequency
 const calculatePremiumPaymentDate = (startDate: string, frequency: string): string => {
   if (!startDate) return '';
@@ -61,7 +74,22 @@ export function PolicyStep({ data, onChange, insurers, products, advisors }: Pol
   const today = new Date();
   const nextYear = addYears(today, 1);
 
-  const formData: PolicyFormData = data || {
+  // Check if loaded premium_payment_date is valid, otherwise recalculate
+  const getInitialPremiumPaymentDate = () => {
+    if (data?.premium_payment_date && isValidDate(data.premium_payment_date)) {
+      return data.premium_payment_date;
+    }
+    // If invalid or missing, calculate from start_date
+    const startDate = data?.start_date || format(today, 'yyyy-MM-dd');
+    const frequency = data?.payment_frequency || 'mensual';
+    return calculatePremiumPaymentDate(startDate, frequency);
+  };
+
+  const formData: PolicyFormData = data ? {
+    ...data,
+    // Override premium_payment_date if it's invalid
+    premium_payment_date: getInitialPremiumPaymentDate(),
+  } : {
     start_date: format(today, 'yyyy-MM-dd'),
     end_date: format(nextYear, 'yyyy-MM-dd'),
     status: 'en_tramite',
