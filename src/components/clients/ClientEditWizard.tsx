@@ -300,7 +300,7 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
 
       if (clientError) throw clientError;
 
-      // 2. Update the selected policy
+      // 2. Update the selected policy (including premium_payment_date)
       const { error: policyError } = await supabase
         .from('policies')
         .update({
@@ -315,6 +315,7 @@ export function ClientEditWizard({ clientId, open, onOpenChange }: ClientEditWiz
           coverage_amount: policyData.coverage_amount ? parseFloat(policyData.coverage_amount) : null,
           deductible: policyData.deductible ? parseFloat(policyData.deductible) : null,
           notes: policyData.notes || null,
+          premium_payment_date: policyData.premium_payment_date || null,
         })
         .eq('id', selectedPolicyId);
 

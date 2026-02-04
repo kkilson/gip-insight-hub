@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { differenceInDays, addMonths } from 'date-fns';
+import { calculateInstallment } from '@/lib/premiumCalculations';
 
 export type CollectionStatus = 'pendiente' | 'contacto_asesor' | 'cobrada';
 
@@ -215,10 +216,10 @@ export function useMarkAsPaid() {
       collectionId: string; 
       userId: string;
     }) => {
-      // Get collection details first
+      // Get collection details first, including policy premium for installment calculation
       const { data: collection, error: fetchError } = await supabase
         .from('collections')
-        .select('*, policy:policies(id, premium_payment_date, payment_frequency)')
+        .select('*, policy:policies(id, premium_payment_date, payment_frequency, premium)')
         .eq('id', collectionId)
         .single();
 
@@ -256,12 +257,16 @@ export function useMarkAsPaid() {
         .update({ premium_payment_date: nextPaymentDate.toISOString().split('T')[0] })
         .eq('id', collection.policy_id);
 
-      // Create next collection record
+      // Calculate the correct installment amount from policy premium
+      const policyPremium = (collection.policy as any)?.premium;
+      const nextInstallment = calculateInstallment(policyPremium, collection.payment_frequency) || collection.amount;
+
+      // Create next collection record with calculated installment
       await supabase.from('collections').insert({
         policy_id: collection.policy_id,
         client_id: collection.client_id,
         due_date: nextPaymentDate.toISOString().split('T')[0],
-        amount: collection.amount,
+        amount: nextInstallment,
         payment_frequency: collection.payment_frequency,
         status: 'pendiente',
       });
