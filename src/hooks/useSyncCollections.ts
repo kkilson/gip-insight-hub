@@ -62,17 +62,24 @@ export function useSyncCollections() {
           };
         });
 
-      // Find collections that need their amount updated (compare with calculated installment)
-      const collectionsToUpdate: { id: string; amount: number }[] = [];
+      // Find collections that need their amount or due_date updated
+      const collectionsToUpdate: { id: string; amount: number; due_date: string }[] = [];
       policies.forEach((p) => {
         const existingList = existingByPolicy.get(p.id);
         if (existingList && p.premium !== null && p.premium !== undefined) {
           // Calculate the correct installment amount
           const correctInstallment = calculateInstallment(p.premium, p.payment_frequency || 'mensual') || p.premium;
           existingList.forEach((existing) => {
-            // Only update if amount differs from the correct installment
-            if (existing.amount !== correctInstallment) {
-              collectionsToUpdate.push({ id: existing.id, amount: correctInstallment });
+            // Update if amount differs OR due_date differs from policy's premium_payment_date
+            const needsAmountUpdate = existing.amount !== correctInstallment;
+            const needsDueDateUpdate = existing.due_date !== p.premium_payment_date;
+            
+            if (needsAmountUpdate || needsDueDateUpdate) {
+              collectionsToUpdate.push({ 
+                id: existing.id, 
+                amount: correctInstallment,
+                due_date: p.premium_payment_date!
+              });
             }
           });
         }
@@ -87,12 +94,12 @@ export function useSyncCollections() {
         if (insertError) throw insertError;
       }
 
-      // Update existing collections with new amounts
+      // Update existing collections with new amounts and/or due dates
       let updatedCount = 0;
       for (const update of collectionsToUpdate) {
         const { error: updateError } = await supabase
           .from('collections')
-          .update({ amount: update.amount })
+          .update({ amount: update.amount, due_date: update.due_date })
           .eq('id', update.id);
 
         if (!updateError) {
