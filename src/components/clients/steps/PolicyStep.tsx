@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { FileText } from 'lucide-react';
-import { format, parse, addYears, addMonths, addDays } from 'date-fns';
+import { format, addYears } from 'date-fns';
 import type { PolicyFormData, Insurer, Product, Advisor } from '../types';
 import { formatInstallment, getInstallmentLabel } from '@/lib/premiumCalculations';
 
@@ -21,80 +21,16 @@ interface PolicyStepProps {
   advisors: Advisor[];
 }
 
-// Validate and fix invalid dates (e.g., years before 1950)
-const isValidDate = (dateStr: string | undefined): boolean => {
-  if (!dateStr) return false;
-  try {
-    const date = parse(dateStr, 'yyyy-MM-dd', new Date());
-    const year = date.getFullYear();
-    // Consider dates before 1950 or after 2100 as invalid
-    return year >= 1950 && year <= 2100;
-  } catch {
-    return false;
-  }
-};
-
-// Calculate next premium payment date based on start date and frequency
-const calculatePremiumPaymentDate = (startDate: string, frequency: string): string => {
-  if (!startDate) return '';
-  
-  const start = parse(startDate, 'yyyy-MM-dd', new Date());
-  const today = new Date();
-  let paymentDate = start;
-  
-  // Calculate interval based on frequency
-  const getNextPaymentDate = (current: Date): Date => {
-    switch (frequency) {
-      case 'mensual':
-      case 'mensual_10_cuotas':
-      case 'mensual_12_cuotas':
-        return addMonths(current, 1);
-      case 'bimensual':
-        return addMonths(current, 2);
-      case 'trimestral':
-        return addMonths(current, 3);
-      case 'semestral':
-        return addMonths(current, 6);
-      case 'anual':
-        return addYears(current, 1);
-      default:
-        return addMonths(current, 1);
-    }
-  };
-  
-  // Find the next payment date that's >= today
-  while (paymentDate < today) {
-    paymentDate = getNextPaymentDate(paymentDate);
-  }
-  
-  return format(paymentDate, 'yyyy-MM-dd');
-};
-
 export function PolicyStep({ data, onChange, insurers, products, advisors }: PolicyStepProps) {
   const today = new Date();
   const nextYear = addYears(today, 1);
 
-  // Check if loaded premium_payment_date is valid, otherwise recalculate
-  const getInitialPremiumPaymentDate = () => {
-    if (data?.premium_payment_date && isValidDate(data.premium_payment_date)) {
-      return data.premium_payment_date;
-    }
-    // If invalid or missing, calculate from start_date
-    const startDate = data?.start_date || format(today, 'yyyy-MM-dd');
-    const frequency = data?.payment_frequency || 'mensual';
-    return calculatePremiumPaymentDate(startDate, frequency);
-  };
-
-  const formData: PolicyFormData = data ? {
-    ...data,
-    // Override premium_payment_date if it's invalid
-    premium_payment_date: getInitialPremiumPaymentDate(),
-  } : {
+  const formData: PolicyFormData = data || {
     start_date: format(today, 'yyyy-MM-dd'),
     end_date: format(nextYear, 'yyyy-MM-dd'),
     status: 'en_tramite',
     payment_frequency: 'mensual',
-    premium_payment_date: format(today, 'yyyy-MM-dd'),
+    premium_payment_date: '', // No auto-calculate, empty by default
   };
 
   const updateField = <K extends keyof PolicyFormData>(
@@ -102,14 +38,7 @@ export function PolicyStep({ data, onChange, insurers, products, advisors }: Pol
     value: PolicyFormData[K]
   ) => {
     const newData = { ...formData, [field]: value };
-    
-    // Auto-calculate premium payment date when start_date or payment_frequency changes
-    if (field === 'start_date' || field === 'payment_frequency') {
-      const startDate = field === 'start_date' ? (value as string) : formData.start_date;
-      const frequency = field === 'payment_frequency' ? (value as string) : formData.payment_frequency;
-      newData.premium_payment_date = calculatePremiumPaymentDate(startDate, frequency);
-    }
-    
+    // No longer auto-calculate premium_payment_date
     onChange(newData);
   };
 
@@ -281,7 +210,7 @@ export function PolicyStep({ data, onChange, insurers, products, advisors }: Pol
             onChange={(e) => updateField('premium_payment_date', e.target.value)}
           />
           <p className="text-xs text-muted-foreground">
-            Se calcula automáticamente según fecha de inicio y frecuencia de pago
+            Se actualiza automáticamente al marcar la cobranza como pagada
           </p>
         </div>
 
