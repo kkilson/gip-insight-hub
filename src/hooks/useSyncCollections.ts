@@ -19,38 +19,68 @@ export function useSyncCollections() {
       if (policiesError) throw policiesError;
 
       if (!policies || policies.length === 0) {
-        return { created: 0, updated: 0, message: 'No hay pólizas vigentes con fecha de pago.' };
+        return { created: 0, updated: 0, deleted: 0, message: 'No hay pólizas vigentes con fecha de pago.' };
       }
 
-      // Get existing pending collections to check for updates and duplicates
+      // Get existing pending collections
       const { data: existingCollections, error: collectionsError } = await supabase
         .from('collections')
         .select('id, policy_id, due_date, amount')
-        .neq('status', 'cobrada');
+        .eq('status', 'pendiente');
 
       if (collectionsError) throw collectionsError;
 
-      // Create a map of existing collections by policy_id for updates
-      const existingByPolicy = new Map<string, { id: string; due_date: string; amount: number }[]>();
-      (existingCollections || []).forEach((c) => {
-        const list = existingByPolicy.get(c.policy_id) || [];
-        list.push({ id: c.id, due_date: c.due_date, amount: c.amount });
-        existingByPolicy.set(c.policy_id, list);
+      // Create a map of policy_id to their expected due_date from the policy
+      const policyExpectedDates = new Map<string, string>();
+      policies.forEach((p) => {
+        if (p.premium_payment_date) {
+          policyExpectedDates.set(p.id, p.premium_payment_date);
+        }
       });
 
-      // Create a set of existing collection keys for fast lookup (to avoid duplicates)
+      // Create a set of existing collection keys for fast lookup
       const existingKeys = new Set(
         (existingCollections || []).map((c) => `${c.policy_id}-${c.due_date}`)
+      );
+
+      // Find orphaned collections (due_date doesn't match policy's premium_payment_date)
+      const orphanedCollectionIds: string[] = [];
+      (existingCollections || []).forEach((c) => {
+        const expectedDate = policyExpectedDates.get(c.policy_id);
+        // If the policy has a different expected date than this collection's due_date,
+        // and there's no other collection with the correct date, this is orphaned
+        if (expectedDate && c.due_date !== expectedDate) {
+          orphanedCollectionIds.push(c.id);
+        }
+      });
+
+      // Delete orphaned collections (old dates that no longer match)
+      let deletedCount = 0;
+      if (orphanedCollectionIds.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('collections')
+          .delete()
+          .in('id', orphanedCollectionIds);
+
+        if (!deleteError) {
+          deletedCount = orphanedCollectionIds.length;
+        }
+      }
+
+      // Recalculate existing keys after deletion
+      const remainingKeys = new Set(
+        (existingCollections || [])
+          .filter((c) => !orphanedCollectionIds.includes(c.id))
+          .map((c) => `${c.policy_id}-${c.due_date}`)
       );
 
       // Filter policies that don't have a pending collection for their payment date
       const collectionsToCreate = policies
         .filter((p) => {
           const key = `${p.id}-${p.premium_payment_date}`;
-          return !existingKeys.has(key);
+          return !remainingKeys.has(key);
         })
         .map((p) => {
-          // Calculate the installment amount based on frequency instead of using annual premium
           const installment = calculateInstallment(p.premium, p.payment_frequency || 'mensual');
           return {
             policy_id: p.id,
@@ -62,26 +92,21 @@ export function useSyncCollections() {
           };
         });
 
-      // Find collections that need their amount or due_date updated
-      const collectionsToUpdate: { id: string; amount: number; due_date: string }[] = [];
+      // Find collections that need their amount updated (for remaining non-orphaned ones)
+      const collectionsToUpdate: { id: string; amount: number }[] = [];
+      const remainingCollections = (existingCollections || []).filter(
+        (c) => !orphanedCollectionIds.includes(c.id)
+      );
+      
       policies.forEach((p) => {
-        const existingList = existingByPolicy.get(p.id);
-        if (existingList && p.premium !== null && p.premium !== undefined) {
-          // Calculate the correct installment amount
+        const matchingCollection = remainingCollections.find(
+          (c) => c.policy_id === p.id && c.due_date === p.premium_payment_date
+        );
+        if (matchingCollection && p.premium !== null && p.premium !== undefined) {
           const correctInstallment = calculateInstallment(p.premium, p.payment_frequency || 'mensual') || p.premium;
-          existingList.forEach((existing) => {
-            // Update if amount differs OR due_date differs from policy's premium_payment_date
-            const needsAmountUpdate = existing.amount !== correctInstallment;
-            const needsDueDateUpdate = existing.due_date !== p.premium_payment_date;
-            
-            if (needsAmountUpdate || needsDueDateUpdate) {
-              collectionsToUpdate.push({ 
-                id: existing.id, 
-                amount: correctInstallment,
-                due_date: p.premium_payment_date!
-              });
-            }
-          });
+          if (matchingCollection.amount !== correctInstallment) {
+            collectionsToUpdate.push({ id: matchingCollection.id, amount: correctInstallment });
+          }
         }
       });
 
@@ -94,12 +119,12 @@ export function useSyncCollections() {
         if (insertError) throw insertError;
       }
 
-      // Update existing collections with new amounts and/or due dates
+      // Update existing collections with new amounts
       let updatedCount = 0;
       for (const update of collectionsToUpdate) {
         const { error: updateError } = await supabase
           .from('collections')
-          .update({ amount: update.amount, due_date: update.due_date })
+          .update({ amount: update.amount })
           .eq('id', update.id);
 
         if (!updateError) {
@@ -114,6 +139,9 @@ export function useSyncCollections() {
       if (updatedCount > 0) {
         messages.push(`${updatedCount} montos actualizados`);
       }
+      if (deletedCount > 0) {
+        messages.push(`${deletedCount} duplicados eliminados`);
+      }
       if (messages.length === 0) {
         messages.push('Todas las cobranzas están al día');
       }
@@ -121,6 +149,7 @@ export function useSyncCollections() {
       return {
         created: collectionsToCreate.length,
         updated: updatedCount,
+        deleted: deletedCount,
         message: messages.join(', ') + '.',
       };
     },
