@@ -12,12 +12,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, Users, Loader2, Eye, Upload } from 'lucide-react';
+import { Plus, Users, Loader2, Eye, Upload, Download } from 'lucide-react';
 import { ClientFormWizard } from '@/components/clients/ClientFormWizard';
 import { ClientEditWizard } from '@/components/clients/ClientEditWizard';
 import { ClientDetailDialog } from '@/components/clients/ClientDetailDialog';
 import { ClientImportWizard } from '@/components/clients/ClientImportWizard';
 import { ClientFilters, type ClientFiltersState } from '@/components/clients/ClientFilters';
+import { useExportClients } from '@/hooks/useExportClients';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -42,6 +43,8 @@ export default function Clients() {
     dateFrom: '',
     dateTo: '',
   });
+
+  const { exportClients, isExporting } = useExportClients();
 
   const { data: clients, isLoading } = useQuery({
     queryKey: ['clients', filters],
@@ -149,6 +152,22 @@ export default function Clients() {
           <p className="text-muted-foreground">Gestión de clientes y sus pólizas</p>
         </div>
         <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => exportClients({
+              search: filters.search,
+              insurerId: filters.insurerId,
+              productId: filters.productId,
+              status: filters.status,
+              advisorId: filters.advisorId,
+              dateFrom: filters.dateFrom,
+              dateTo: filters.dateTo,
+            })}
+            disabled={isExporting}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            {isExporting ? 'Exportando...' : 'Exportar Excel'}
+          </Button>
           <Button variant="outline" onClick={() => setIsImportOpen(true)}>
             <Upload className="h-4 w-4 mr-2" />
             Importar Excel
