@@ -30,10 +30,10 @@ export default function Auth() {
       <div className="hidden lg:flex lg:w-1/2 bg-primary flex-col justify-between p-12">
         <div>
           <h1 className="text-3xl font-bold text-primary-foreground">
-            GIP Asesores Integrales
+            Kover Management Assist
           </h1>
           <p className="mt-2 text-primary-foreground/80">
-            Sistema de Gestión Interno
+            Sistema de Gestión de Seguros
           </p>
         </div>
         
@@ -65,7 +65,7 @@ export default function Auth() {
         </div>
 
         <p className="text-sm text-primary-foreground/50">
-          © {new Date().getFullYear()} GIP Asesores Integrales. Todos los derechos reservados.
+          © {new Date().getFullYear()} Kover Enabler. Todos los derechos reservados.
         </p>
       </div>
 
@@ -75,10 +75,10 @@ export default function Auth() {
           {/* Mobile logo */}
           <div className="lg:hidden text-center mb-8">
             <h1 className="text-2xl font-bold text-primary">
-              GIP Asesores Integrales
+              Kover Management Assist
             </h1>
             <p className="text-muted-foreground">
-              Sistema de Gestión Interno
+              Sistema de Gestión de Seguros
             </p>
           </div>
 
