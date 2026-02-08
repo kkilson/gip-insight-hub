@@ -116,7 +116,7 @@ export default function FirstTimeSetup() {
           </div>
           <CardTitle className="text-2xl">Configuración Inicial</CardTitle>
           <CardDescription>
-            Bienvenido a GIP Asesores Integrales
+            Bienvenido a Kover Management Assist
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

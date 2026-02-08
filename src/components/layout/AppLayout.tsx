@@ -216,8 +216,8 @@ export function AppLayout({ children }: AppLayoutProps) {
         )}>
           {!isCollapsed && (
             <div className="flex flex-col">
-              <span className="font-bold text-sidebar-foreground">GIP</span>
-              <span className="text-xs text-sidebar-foreground/60">Asesores Integrales</span>
+              <span className="font-bold text-sidebar-foreground">Kover</span>
+              <span className="text-xs text-sidebar-foreground/60">Management Assist</span>
             </div>
           )}
           <Button
@@ -304,7 +304,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <span className="ml-3 font-semibold">GIP Asesores Integrales</span>
+          <span className="ml-3 font-semibold">Kover Management Assist</span>
         </header>
 
         {/* Page content */}
