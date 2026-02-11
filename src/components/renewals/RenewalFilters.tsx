@@ -24,18 +24,25 @@ export function RenewalFilters({ filters, onFiltersChange }: RenewalFiltersProps
 
       {/* Days ahead filter */}
       <Select
-        value={String(filters.daysAhead || 30)}
-        onValueChange={(value) => onFiltersChange({ ...filters, daysAhead: parseInt(value) })}
+        value={filters.daysAhead || '30'}
+        onValueChange={(value) => onFiltersChange({ ...filters, daysAhead: value })}
       >
         <SelectTrigger className="w-[160px]">
           <SelectValue placeholder="Período" />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value="past-240">Últimos 240 días</SelectItem>
+          <SelectItem value="past-180">Últimos 180 días</SelectItem>
+          <SelectItem value="past-90">Últimos 90 días</SelectItem>
+          <SelectItem value="past-60">Últimos 60 días</SelectItem>
+          <SelectItem value="past-30">Últimos 30 días</SelectItem>
           <SelectItem value="7">Próximos 7 días</SelectItem>
           <SelectItem value="15">Próximos 15 días</SelectItem>
           <SelectItem value="30">Próximos 30 días</SelectItem>
           <SelectItem value="60">Próximos 60 días</SelectItem>
           <SelectItem value="90">Próximos 90 días</SelectItem>
+          <SelectItem value="180">Próximos 180 días</SelectItem>
+          <SelectItem value="240">Próximos 240 días</SelectItem>
         </SelectContent>
       </Select>
 

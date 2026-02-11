@@ -86,19 +86,31 @@ export interface PolicyForRenewal {
 
 export interface RenewalFilters {
   status?: RenewalStatus | 'all' | 'sin_config';
-  daysAhead?: number;
+  daysAhead?: string;
   search?: string;
 }
 
 // Get policies expiring within a date range (for renewal management)
 export function useRenewalPolicies(filters: RenewalFilters = {}) {
-  const { daysAhead = 30, status = 'all', search = '' } = filters;
+  const { daysAhead = '30', status = 'all', search = '' } = filters;
 
   return useQuery({
     queryKey: ['renewal-policies', filters],
     queryFn: async (): Promise<PolicyForRenewal[]> => {
       const today = startOfDay(new Date());
-      const futureDate = endOfDay(addDays(today, daysAhead));
+      const isPast = daysAhead.startsWith('past-');
+      const numDays = isPast ? parseInt(daysAhead.replace('past-', '')) : parseInt(daysAhead);
+
+      let dateFrom: Date;
+      let dateTo: Date;
+
+      if (isPast) {
+        dateFrom = startOfDay(addDays(today, -numDays));
+        dateTo = endOfDay(today);
+      } else {
+        dateFrom = today;
+        dateTo = endOfDay(addDays(today, numDays));
+      }
 
       // Get policies expiring in the next N days
       let query = supabase
@@ -133,9 +145,9 @@ export function useRenewalPolicies(filters: RenewalFilters = {}) {
             advisor:advisors(id, full_name)
           )
         `)
-        .eq('status', 'vigente')
-        .gte('end_date', format(today, 'yyyy-MM-dd'))
-        .lte('end_date', format(futureDate, 'yyyy-MM-dd'))
+        .in('status', isPast ? ['vigente', 'vencida', 'cancelada', 'pendiente', 'en_tramite'] : ['vigente'])
+        .gte('end_date', format(dateFrom, 'yyyy-MM-dd'))
+        .lte('end_date', format(dateTo, 'yyyy-MM-dd'))
         .order('end_date', { ascending: true });
 
       if (search) {
