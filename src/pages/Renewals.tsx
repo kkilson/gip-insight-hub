@@ -33,7 +33,7 @@ import { supabase } from '@/integrations/supabase/client';
 export default function Renewals() {
   // Renewal state
   const [renewalFilters, setRenewalFilters] = useState<FilterType>({
-    daysAhead: 30,
+    daysAhead: '30',
     status: 'all',
     search: '',
   });
