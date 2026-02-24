@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import { format, differenceInDays } from 'date-fns';
+import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Search, Eye, Pencil, Trash2 } from 'lucide-react';
 import { useBudgets, useDeleteBudget, type Budget } from '@/hooks/useFinances';
+import { BulkActionsBar } from '@/components/ui/BulkActionsBar';
+import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BudgetFormDialog } from './BudgetFormDialog';
 import { BudgetDetailDialog } from './BudgetDetailDialog';
@@ -34,14 +35,10 @@ export function BudgetsTab() {
   const { data: budgets, isLoading } = useBudgets();
   const deleteBudget = useDeleteBudget();
 
-  const filteredBudgets = budgets?.filter(budget =>
-    !search || budget.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredBudgets = budgets?.filter(budget => !search || budget.name.toLowerCase().includes(search.toLowerCase()));
+  const bulk = useBulkSelection(filteredBudgets);
 
-  const handleEdit = (budget: Budget) => {
-    setEditingBudget(budget);
-    setIsFormOpen(true);
-  };
+  const handleEdit = (budget: Budget) => { setEditingBudget(budget); setIsFormOpen(true); };
 
   return (
     <div className="space-y-4">
@@ -50,10 +47,7 @@ export function BudgetsTab() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar presupuesto..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Button onClick={() => setIsFormOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nuevo Presupuesto
-        </Button>
+        <Button onClick={() => setIsFormOpen(true)}><Plus className="h-4 w-4 mr-2" />Nuevo Presupuesto</Button>
       </div>
 
       <Card>
@@ -67,14 +61,11 @@ export function BudgetsTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead className="w-[120px]">Período</TableHead>
-                  <TableHead className="w-[180px]">Fechas</TableHead>
-                  <TableHead className="text-right w-[130px]">Presupuestado</TableHead>
-                  <TableHead className="text-right w-[130px]">Ejecutado</TableHead>
-                  <TableHead className="w-[150px]">Ejecución</TableHead>
-                  <TableHead className="w-[80px]">Estado</TableHead>
-                  <TableHead className="w-[100px]">Acciones</TableHead>
+                  <TableHead className="w-[40px]"><Checkbox checked={bulk.isAllSelected} onCheckedChange={bulk.toggleAll} /></TableHead>
+                  <TableHead>Nombre</TableHead><TableHead className="w-[120px]">Período</TableHead>
+                  <TableHead className="w-[180px]">Fechas</TableHead><TableHead className="text-right w-[130px]">Presupuestado</TableHead>
+                  <TableHead className="text-right w-[130px]">Ejecutado</TableHead><TableHead className="w-[150px]">Ejecución</TableHead>
+                  <TableHead className="w-[80px]">Estado</TableHead><TableHead className="w-[100px]">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -82,7 +73,8 @@ export function BudgetsTab() {
                   const pct = budget.total_budgeted_usd > 0 ? (budget.total_spent_usd / budget.total_budgeted_usd) * 100 : 0;
                   const over = pct > 100;
                   return (
-                    <TableRow key={budget.id}>
+                    <TableRow key={budget.id} className={bulk.isSelected(budget.id) ? 'bg-muted/50' : ''}>
+                      <TableCell><Checkbox checked={bulk.isSelected(budget.id)} onCheckedChange={() => bulk.toggle(budget.id)} /></TableCell>
                       <TableCell className="font-medium">{budget.name}</TableCell>
                       <TableCell><Badge variant="outline">{periodLabels[budget.period] || budget.period}</Badge></TableCell>
                       <TableCell className="text-sm">{format(new Date(budget.start_date), 'dd/MM/yy')} - {format(new Date(budget.end_date), 'dd/MM/yy')}</TableCell>
@@ -100,18 +92,10 @@ export function BudgetsTab() {
                           <Button variant="ghost" size="icon" onClick={() => setViewingBudgetId(budget.id)}><Eye className="h-4 w-4" /></Button>
                           <Button variant="ghost" size="icon" onClick={() => handleEdit(budget)}><Pencil className="h-4 w-4" /></Button>
                           <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
-                            </AlertDialogTrigger>
+                            <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
                             <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>¿Eliminar presupuesto?</AlertDialogTitle>
-                                <AlertDialogDescription>Se eliminará "{budget.name}" y todas sus líneas. Esta acción no se puede deshacer.</AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => deleteBudget.mutate(budget.id)}>Eliminar</AlertDialogAction>
-                              </AlertDialogFooter>
+                              <AlertDialogHeader><AlertDialogTitle>¿Eliminar presupuesto?</AlertDialogTitle><AlertDialogDescription>Se eliminará "{budget.name}" y todas sus líneas.</AlertDialogDescription></AlertDialogHeader>
+                              <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteBudget.mutate(budget.id)}>Eliminar</AlertDialogAction></AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
                         </div>
@@ -124,6 +108,17 @@ export function BudgetsTab() {
           )}
         </CardContent>
       </Card>
+
+      <BulkActionsBar
+        selectedCount={bulk.selectedCount}
+        onClear={bulk.clearSelection}
+        actions={[{
+          label: 'Eliminar', icon: <Trash2 className="h-4 w-4" />, variant: 'destructive', confirm: true,
+          confirmTitle: '¿Eliminar presupuestos seleccionados?',
+          confirmDescription: `Se eliminarán ${bulk.selectedCount} presupuesto(s) y sus líneas. Esta acción no se puede deshacer.`,
+          onClick: () => { bulk.selectedIds.forEach(id => deleteBudget.mutate(id)); bulk.clearSelection(); },
+        }]}
+      />
 
       <BudgetFormDialog open={isFormOpen} onOpenChange={() => { setIsFormOpen(false); setEditingBudget(null); }} budget={editingBudget} />
       <BudgetDetailDialog budgetId={viewingBudgetId} onClose={() => setViewingBudgetId(null)} />
