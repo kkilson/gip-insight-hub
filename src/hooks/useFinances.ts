@@ -67,10 +67,12 @@ export interface BudgetFormData {
 
 export interface BudgetLineFormData {
   id?: string;
+  day_of_month?: number;
   planned_date: string;
   description: string;
   can_pay_in_ves: boolean;
   amount_usd: number;
+  amount_ves: number;
   reference_rate: number | null;
   status: 'pendiente' | 'pagado' | 'vencido' | 'pospuesto';
   reminder_date: string | null;
@@ -298,10 +300,12 @@ export function useCreateBudget() {
           description: line.description,
           can_pay_in_ves: line.can_pay_in_ves,
           amount_usd: line.amount_usd,
+          amount_ves: line.amount_ves || 0,
           reference_rate: line.reference_rate,
           status: line.status,
           reminder_date: line.reminder_date,
           category: line.category,
+          day_of_month: line.day_of_month || null,
         }));
         
         const { error: linesError } = await supabase
@@ -352,10 +356,12 @@ export function useUpdateBudget() {
           description: line.description,
           can_pay_in_ves: line.can_pay_in_ves,
           amount_usd: line.amount_usd,
+          amount_ves: line.amount_ves || 0,
           reference_rate: line.reference_rate,
           status: line.status,
           reminder_date: line.reminder_date,
           category: line.category,
+          day_of_month: line.day_of_month || null,
         }));
         
         const { error: linesError } = await supabase
