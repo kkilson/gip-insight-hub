@@ -2,23 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-// Types based on database schema
-export interface ChartOfAccount {
-  id: string;
-  code: string;
-  name: string;
-  parent_id: string | null;
-  level: number;
-  class: 'activos' | 'pasivos' | 'patrimonio' | 'ingresos' | 'costos' | 'gastos' | 'ajustes';
-  nature: 'deudora' | 'acreedora' | 'variable';
-  requires_cost_center: boolean;
-  requires_third_party: boolean;
-  is_active: boolean;
-  balance_usd: number;
-  balance_ves: number;
-  created_at: string;
-  updated_at: string;
-}
+// =============================================
+// TYPES
+// =============================================
 
 export interface ExchangeRate {
   id: string;
@@ -32,65 +18,12 @@ export interface ExchangeRate {
   created_at: string;
 }
 
-export interface CostCenter {
-  id: string;
-  code: string;
-  name: string;
-  type: 'operativo' | 'comercial' | 'administrativo' | 'soporte';
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface JournalEntry {
-  id: string;
-  entry_number: number;
-  entry_date: string;
-  description: string;
-  base_currency: 'USD' | 'VES' | 'EUR' | 'USDT';
-  exchange_rate_source: 'BCV' | 'Binance' | 'Kontigo' | 'Manual';
-  exchange_rate: number;
-  cost_center_id: string | null;
-  status: 'borrador' | 'publicado' | 'cerrado';
-  is_month_closed: boolean;
-  total_debit_usd: number;
-  total_credit_usd: number;
-  total_debit_ves: number;
-  total_credit_ves: number;
-  notes: string | null;
-  created_by: string | null;
-  updated_by: string | null;
-  created_at: string;
-  updated_at: string;
-  lines?: JournalEntryLine[];
-  cost_center?: CostCenter;
-}
-
-export interface JournalEntryLine {
-  id: string;
-  entry_id: string;
-  line_number: number;
-  account_id: string;
-  transaction_type: 'deposito' | 'retiro' | 'transferencia' | 'pago' | 'cobro' | 'ajuste';
-  applies_igtf: boolean;
-  debit_usd: number;
-  credit_usd: number;
-  debit_ves: number;
-  credit_ves: number;
-  cost_center_id: string | null;
-  description: string | null;
-  created_at: string;
-  account?: ChartOfAccount;
-  cost_center?: CostCenter;
-}
-
 export interface Budget {
   id: string;
   name: string;
   period: string;
   start_date: string;
   end_date: string;
-  cost_center_id: string | null;
   currency: 'USD' | 'VES' | 'EUR' | 'USDT';
   total_budgeted_usd: number;
   total_spent_usd: number;
@@ -100,14 +33,13 @@ export interface Budget {
   created_at: string;
   updated_at: string;
   lines?: BudgetLine[];
-  cost_center?: CostCenter;
 }
 
 export interface BudgetLine {
   id: string;
   budget_id: string;
+  line_number?: number;
   planned_date: string;
-  account_id: string;
   description: string;
   can_pay_in_ves: boolean;
   amount_usd: number;
@@ -117,90 +49,112 @@ export interface BudgetLine {
   actual_amount_usd: number | null;
   postponed_date: string | null;
   postpone_reason: string | null;
-  journal_entry_id: string | null;
+  reminder_date: string | null;
+  category: string | null;
   created_at: string;
   updated_at: string;
-  account?: ChartOfAccount;
 }
 
-export interface MonthlyClosing {
+export interface BudgetFormData {
+  name: string;
+  period: 'mensual' | 'bimestral' | 'trimestral' | 'cuatrimestral' | 'semestral' | 'anual' | 'bienal' | 'trienal' | 'cuatrienal' | 'quinquenal' | 'decenal';
+  start_date: string;
+  end_date: string;
+  currency: 'USD' | 'VES' | 'EUR' | 'USDT';
+  notes: string | null;
+  is_active: boolean;
+}
+
+export interface BudgetLineFormData {
+  id?: string;
+  planned_date: string;
+  description: string;
+  can_pay_in_ves: boolean;
+  amount_usd: number;
+  reference_rate: number | null;
+  status: 'pendiente' | 'pagado' | 'vencido' | 'pospuesto';
+  reminder_date: string | null;
+  category: string | null;
+}
+
+export interface Bank {
   id: string;
-  month: number;
-  year: number;
-  closing_date: string;
-  closed_by: string | null;
-  closing_entry_id: string | null;
-  net_income_usd: number;
-  total_assets_usd: number;
-  total_liabilities_usd: number;
-  total_equity_usd: number;
-  is_reopened: boolean;
-  reopened_at: string | null;
-  reopened_by: string | null;
-  reopen_reason: string | null;
+  name: string;
+  code: string | null;
+  is_active: boolean;
   created_at: string;
+  updated_at: string;
 }
 
-// Dashboard metrics
-export interface FinanceDashboardMetrics {
-  totalIncome: number;
-  totalExpenses: number;
-  cashAvailable: number;
-  accountsPayable: number;
-  accountsReceivable: number;
-  incomeChange: number;
-  expenseChange: number;
+export interface FinanceIncome {
+  id: string;
+  income_date: string;
+  month: string;
+  description: string;
+  amount_usd: number;
+  amount_ves: number;
+  exchange_rate: number | null;
+  bank_id: string | null;
+  bank?: Bank;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FinanceExpense {
+  id: string;
+  expense_date: string;
+  month: string;
+  description: string;
+  amount_usd: number;
+  amount_ves: number;
+  exchange_rate: number | null;
+  is_paid: boolean;
+  paid_at: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FinanceInvoice {
+  id: string;
+  month: string;
+  invoice_date: string;
+  invoice_number: string;
+  control_number: string | null;
+  description: string;
+  total_usd: number;
+  total_ves: number;
+  is_collected: boolean;
+  collected_at: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FinanceReceivable {
+  id: string;
+  source: string;
+  invoice_id: string | null;
+  description: string;
+  amount_usd: number;
+  amount_ves: number;
+  due_date: string | null;
+  is_collected: boolean;
+  collected_at: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 // =============================================
-// HOOKS
+// EXCHANGE RATES
 // =============================================
 
-// Chart of Accounts
-export function useChartOfAccounts() {
-  return useQuery({
-    queryKey: ['chart-of-accounts'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('chart_of_accounts')
-        .select('*')
-        .order('code');
-      if (error) throw error;
-      return data as ChartOfAccount[];
-    },
-  });
-}
-
-export function useActiveAccounts() {
-  return useQuery({
-    queryKey: ['chart-of-accounts', 'active'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('chart_of_accounts')
-        .select('*')
-        .eq('is_active', true)
-        .order('code');
-      if (error) throw error;
-      return data as ChartOfAccount[];
-    },
-  });
-}
-
-export function useLeafAccounts() {
-  const { data: allAccounts } = useChartOfAccounts();
-  
-  return useQuery({
-    queryKey: ['chart-of-accounts', 'leaves'],
-    queryFn: async () => {
-      if (!allAccounts) return [];
-      const parentIds = new Set(allAccounts.filter(a => a.parent_id).map(a => a.parent_id));
-      return allAccounts.filter(a => !parentIds.has(a.id) && a.is_active);
-    },
-    enabled: !!allAccounts,
-  });
-}
-
-// Exchange Rates
 export function useExchangeRates(limit = 100) {
   return useQuery({
     queryKey: ['exchange-rates', limit],
@@ -240,7 +194,6 @@ export function useLatestExchangeRates() {
           }
         }
       }
-      
       return rates;
     },
   });
@@ -265,144 +218,31 @@ export function useAddExchangeRate() {
       toast({ title: 'Tasa de cambio registrada correctamente' });
     },
     onError: (error: Error) => {
-      toast({
-        title: 'Error al registrar tasa',
-        description: error.message,
-        variant: 'destructive',
-      });
+      toast({ title: 'Error al registrar tasa', description: error.message, variant: 'destructive' });
     },
   });
 }
 
-// Cost Centers
-export function useCostCenters() {
-  return useQuery({
-    queryKey: ['cost-centers'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('cost_centers')
-        .select('*')
-        .order('code');
-      if (error) throw error;
-      return data as CostCenter[];
-    },
-  });
-}
+// =============================================
+// BUDGETS
+// =============================================
 
-export function useActiveCostCenters() {
-  return useQuery({
-    queryKey: ['cost-centers', 'active'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('cost_centers')
-        .select('*')
-        .eq('is_active', true)
-        .order('code');
-      if (error) throw error;
-      return data as CostCenter[];
-    },
-  });
-}
-
-// Journal Entries
-export function useJournalEntries(filters?: {
-  startDate?: string;
-  endDate?: string;
-  status?: string;
-  costCenterId?: string;
-}) {
-  return useQuery({
-    queryKey: ['journal-entries', filters],
-    queryFn: async () => {
-      let query = supabase
-        .from('journal_entries')
-        .select(`
-          *,
-          cost_center:cost_centers(*)
-        `)
-        .order('entry_number', { ascending: false });
-      
-      if (filters?.startDate) {
-        query = query.gte('entry_date', filters.startDate);
-      }
-      if (filters?.endDate) {
-        query = query.lte('entry_date', filters.endDate);
-      }
-      if (filters?.status && filters.status !== 'all') {
-        query = query.eq('status', filters.status as 'borrador' | 'publicado' | 'cerrado');
-      }
-      if (filters?.costCenterId && filters.costCenterId !== 'all') {
-        query = query.eq('cost_center_id', filters.costCenterId);
-      }
-      
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as JournalEntry[];
-    },
-  });
-}
-
-export function useJournalEntry(id: string | null) {
-  return useQuery({
-    queryKey: ['journal-entry', id],
-    queryFn: async () => {
-      if (!id) return null;
-      
-      const { data: entry, error: entryError } = await supabase
-        .from('journal_entries')
-        .select(`
-          *,
-          cost_center:cost_centers(*)
-        `)
-        .eq('id', id)
-        .single();
-      
-      if (entryError) throw entryError;
-      
-      const { data: lines, error: linesError } = await supabase
-        .from('journal_entry_lines')
-        .select(`
-          *,
-          account:chart_of_accounts(*),
-          cost_center:cost_centers(*)
-        `)
-        .eq('entry_id', id)
-        .order('line_number');
-      
-      if (linesError) throw linesError;
-      
-      return { ...entry, lines } as JournalEntry;
-    },
-    enabled: !!id,
-  });
-}
-
-// Budgets
-export function useBudgets(filters?: {
-  isActive?: boolean;
-  costCenterId?: string;
-}) {
+export function useBudgets(filters?: { isActive?: boolean }) {
   return useQuery({
     queryKey: ['budgets', filters],
     queryFn: async () => {
       let query = supabase
         .from('budgets')
-        .select(`
-          *,
-          cost_center:cost_centers(*)
-        `)
+        .select('*')
         .order('start_date', { ascending: false });
       
       if (filters?.isActive !== undefined) {
         query = query.eq('is_active', filters.isActive);
       }
-      if (filters?.costCenterId && filters.costCenterId !== 'all') {
-        query = query.eq('cost_center_id', filters.costCenterId);
-      }
       
       const { data, error } = await query;
       if (error) throw error;
-      return data as Budget[];
+      return data as unknown as Budget[];
     },
   });
 }
@@ -415,10 +255,7 @@ export function useBudget(id: string | null) {
       
       const { data: budget, error: budgetError } = await supabase
         .from('budgets')
-        .select(`
-          *,
-          cost_center:cost_centers(*)
-        `)
+        .select('*')
         .eq('id', id)
         .single();
       
@@ -426,41 +263,16 @@ export function useBudget(id: string | null) {
       
       const { data: lines, error: linesError } = await supabase
         .from('budget_lines')
-        .select(`
-          *,
-          account:chart_of_accounts(*)
-        `)
+        .select('*')
         .eq('budget_id', id)
         .order('planned_date');
       
       if (linesError) throw linesError;
       
-      return { ...budget, lines } as Budget;
+      return { ...budget, lines } as unknown as Budget;
     },
     enabled: !!id,
   });
-}
-
-export interface BudgetFormData {
-  name: string;
-  period: 'mensual' | 'bimestral' | 'trimestral' | 'cuatrimestral' | 'semestral' | 'anual' | 'bienal' | 'trienal' | 'cuatrienal' | 'quinquenal' | 'decenal';
-  start_date: string;
-  end_date: string;
-  cost_center_id: string | null;
-  currency: 'USD' | 'VES' | 'EUR' | 'USDT';
-  notes: string | null;
-  is_active: boolean;
-}
-
-export interface BudgetLineFormData {
-  id?: string;
-  planned_date: string;
-  account_id: string;
-  description: string;
-  can_pay_in_ves: boolean;
-  amount_usd: number;
-  reference_rate: number | null;
-  status: 'pendiente' | 'pagado' | 'vencido' | 'pospuesto';
 }
 
 export function useCreateBudget() {
@@ -469,33 +281,27 @@ export function useCreateBudget() {
   
   return useMutation({
     mutationFn: async ({ budget, lines }: { budget: BudgetFormData; lines: BudgetLineFormData[] }) => {
-      // Calculate total budgeted
       const total_budgeted_usd = lines.reduce((sum, line) => sum + line.amount_usd, 0);
       
-      // Insert budget
       const { data: newBudget, error: budgetError } = await supabase
         .from('budgets')
-        .insert({
-          ...budget,
-          total_budgeted_usd,
-          total_spent_usd: 0,
-        })
+        .insert({ ...budget, total_budgeted_usd, total_spent_usd: 0 })
         .select()
         .single();
       
       if (budgetError) throw budgetError;
       
-      // Insert lines
       if (lines.length > 0) {
-        const budgetLines = lines.map((line, index) => ({
+        const budgetLines = lines.map((line) => ({
           budget_id: newBudget.id,
           planned_date: line.planned_date,
-          account_id: line.account_id,
           description: line.description,
           can_pay_in_ves: line.can_pay_in_ves,
           amount_usd: line.amount_usd,
           reference_rate: line.reference_rate,
           status: line.status,
+          reminder_date: line.reminder_date,
+          category: line.category,
         }));
         
         const { error: linesError } = await supabase
@@ -512,11 +318,7 @@ export function useCreateBudget() {
       toast({ title: 'Presupuesto creado correctamente' });
     },
     onError: (error: Error) => {
-      toast({
-        title: 'Error al crear presupuesto',
-        description: error.message,
-        variant: 'destructive',
-      });
+      toast({ title: 'Error al crear presupuesto', description: error.message, variant: 'destructive' });
     },
   });
 }
@@ -527,21 +329,15 @@ export function useUpdateBudget() {
   
   return useMutation({
     mutationFn: async ({ id, budget, lines }: { id: string; budget: BudgetFormData; lines: BudgetLineFormData[] }) => {
-      // Calculate total budgeted
       const total_budgeted_usd = lines.reduce((sum, line) => sum + line.amount_usd, 0);
       
-      // Update budget
       const { error: budgetError } = await supabase
         .from('budgets')
-        .update({
-          ...budget,
-          total_budgeted_usd,
-        })
+        .update({ ...budget, total_budgeted_usd })
         .eq('id', id);
       
       if (budgetError) throw budgetError;
       
-      // Delete existing lines
       const { error: deleteError } = await supabase
         .from('budget_lines')
         .delete()
@@ -549,17 +345,17 @@ export function useUpdateBudget() {
       
       if (deleteError) throw deleteError;
       
-      // Insert new lines
       if (lines.length > 0) {
         const budgetLines = lines.map((line) => ({
           budget_id: id,
           planned_date: line.planned_date,
-          account_id: line.account_id,
           description: line.description,
           can_pay_in_ves: line.can_pay_in_ves,
           amount_usd: line.amount_usd,
           reference_rate: line.reference_rate,
           status: line.status,
+          reminder_date: line.reminder_date,
+          category: line.category,
         }));
         
         const { error: linesError } = await supabase
@@ -577,11 +373,7 @@ export function useUpdateBudget() {
       toast({ title: 'Presupuesto actualizado correctamente' });
     },
     onError: (error: Error) => {
-      toast({
-        title: 'Error al actualizar presupuesto',
-        description: error.message,
-        variant: 'destructive',
-      });
+      toast({ title: 'Error al actualizar presupuesto', description: error.message, variant: 'destructive' });
     },
   });
 }
@@ -592,12 +384,7 @@ export function useDeleteBudget() {
   
   return useMutation({
     mutationFn: async (id: string) => {
-      // Lines will be cascade deleted
-      const { error } = await supabase
-        .from('budgets')
-        .delete()
-        .eq('id', id);
-      
+      const { error } = await supabase.from('budgets').delete().eq('id', id);
       if (error) throw error;
       return id;
     },
@@ -606,104 +393,354 @@ export function useDeleteBudget() {
       toast({ title: 'Presupuesto eliminado correctamente' });
     },
     onError: (error: Error) => {
-      toast({
-        title: 'Error al eliminar presupuesto',
-        description: error.message,
-        variant: 'destructive',
-      });
+      toast({ title: 'Error al eliminar presupuesto', description: error.message, variant: 'destructive' });
     },
   });
 }
 
-// Monthly Closings
-export function useMonthlyClosings() {
+// =============================================
+// BANKS
+// =============================================
+
+export function useBanks() {
   return useQuery({
-    queryKey: ['monthly-closings'],
+    queryKey: ['banks'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('monthly_closings')
+        .from('banks')
         .select('*')
-        .order('year', { ascending: false })
-        .order('month', { ascending: false });
+        .order('name');
       if (error) throw error;
-      return data as MonthlyClosing[];
+      return data as unknown as Bank[];
     },
   });
 }
 
-export function useIsMonthClosed(month: number, year: number) {
+export function useActiveBanks() {
   return useQuery({
-    queryKey: ['monthly-closing', month, year],
+    queryKey: ['banks', 'active'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('monthly_closings')
+        .from('banks')
         .select('*')
-        .eq('month', month)
-        .eq('year', year)
-        .maybeSingle();
-      
+        .eq('is_active', true)
+        .order('name');
       if (error) throw error;
-      return data ? !data.is_reopened : false;
+      return data as unknown as Bank[];
     },
   });
 }
 
-// Dashboard Metrics
-export function useFinanceDashboardMetrics(startDate: string, endDate: string) {
+export function useSaveBank() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: async (bank: { id?: string; name: string; code?: string; is_active?: boolean }) => {
+      if (bank.id) {
+        const { data, error } = await supabase
+          .from('banks')
+          .update({ name: bank.name, code: bank.code || null, is_active: bank.is_active ?? true })
+          .eq('id', bank.id)
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      } else {
+        const { data, error } = await supabase
+          .from('banks')
+          .insert({ name: bank.name, code: bank.code || null })
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['banks'] });
+      toast({ title: 'Banco guardado correctamente' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error al guardar banco', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
+// =============================================
+// INCOME
+// =============================================
+
+export function useFinanceIncome(month?: string) {
   return useQuery({
-    queryKey: ['finance-dashboard-metrics', startDate, endDate],
+    queryKey: ['finance-income', month],
     queryFn: async () => {
-      // Get all published journal entries for the period
-      const { data: entries, error } = await supabase
-        .from('journal_entries')
-        .select(`
-          *,
-          lines:journal_entry_lines(
-            *,
-            account:chart_of_accounts(code, class)
-          )
-        `)
-        .eq('status', 'publicado')
-        .gte('entry_date', startDate)
-        .lte('entry_date', endDate);
+      let query = supabase
+        .from('finance_income')
+        .select('*, bank:banks(*)')
+        .order('income_date', { ascending: false });
       
-      if (error) throw error;
-      
-      let totalIncome = 0;
-      let totalExpenses = 0;
-      
-      for (const entry of entries || []) {
-        for (const line of (entry as any).lines || []) {
-          const account = line.account;
-          if (!account) continue;
-          
-          if (account.class === 'ingresos') {
-            totalIncome += line.credit_usd - line.debit_usd;
-          } else if (account.class === 'gastos' || account.class === 'costos') {
-            totalExpenses += line.debit_usd - line.credit_usd;
-          }
-        }
+      if (month) {
+        query = query.eq('month', month);
       }
       
-      // Get current balances for cash, receivables, and payables
-      const { data: accounts } = await supabase
-        .from('chart_of_accounts')
-        .select('code, balance_usd')
-        .in('code', ['1110', '1120', '2110']);
+      const { data, error } = await query;
+      if (error) throw error;
+      return data as unknown as FinanceIncome[];
+    },
+  });
+}
+
+export function useSaveIncome() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: async (income: { id?: string; income_date: string; month: string; description: string; amount_usd: number; amount_ves: number; exchange_rate?: number | null; bank_id?: string | null; notes?: string | null }) => {
+      if (income.id) {
+        const { id, ...rest } = income;
+        const { data, error } = await supabase.from('finance_income').update(rest).eq('id', id).select().single();
+        if (error) throw error;
+        return data;
+      } else {
+        const { id, ...rest } = income as any;
+        const { data, error } = await supabase.from('finance_income').insert(rest).select().single();
+        if (error) throw error;
+        return data;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['finance-income'] });
+      toast({ title: 'Ingreso guardado correctamente' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error al guardar ingreso', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
+export function useDeleteIncome() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('finance_income').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['finance-income'] });
+      toast({ title: 'Ingreso eliminado' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error al eliminar', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
+// =============================================
+// EXPENSES
+// =============================================
+
+export function useFinanceExpenses(month?: string) {
+  return useQuery({
+    queryKey: ['finance-expenses', month],
+    queryFn: async () => {
+      let query = supabase
+        .from('finance_expenses')
+        .select('*')
+        .order('expense_date', { ascending: false });
       
-      const cashAvailable = accounts?.find(a => a.code === '1110')?.balance_usd || 0;
-      const accountsReceivable = accounts?.find(a => a.code === '1120')?.balance_usd || 0;
-      const accountsPayable = accounts?.find(a => a.code === '2110')?.balance_usd || 0;
+      if (month) {
+        query = query.eq('month', month);
+      }
       
-      return {
-        totalIncome,
-        totalExpenses,
-        cashAvailable,
-        accountsPayable,
-        accountsReceivable,
-        incomeChange: 0, // TODO: Calculate vs previous period
-        expenseChange: 0,
-      } as FinanceDashboardMetrics;
+      const { data, error } = await query;
+      if (error) throw error;
+      return data as unknown as FinanceExpense[];
+    },
+  });
+}
+
+export function useSaveExpense() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: async (expense: { id?: string; expense_date: string; month: string; description: string; amount_usd: number; amount_ves: number; exchange_rate?: number | null; is_paid?: boolean; notes?: string | null }) => {
+      if (expense.id) {
+        const { id, ...rest } = expense;
+        const { data, error } = await supabase.from('finance_expenses').update(rest).eq('id', id).select().single();
+        if (error) throw error;
+        return data;
+      } else {
+        const { id, ...rest } = expense as any;
+        const { data, error } = await supabase.from('finance_expenses').insert(rest).select().single();
+        if (error) throw error;
+        return data;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['finance-expenses'] });
+      toast({ title: 'Egreso guardado correctamente' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error al guardar egreso', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
+export function useDeleteExpense() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('finance_expenses').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['finance-expenses'] });
+      toast({ title: 'Egreso eliminado' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error al eliminar', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
+// =============================================
+// INVOICES
+// =============================================
+
+export function useFinanceInvoices(month?: string) {
+  return useQuery({
+    queryKey: ['finance-invoices', month],
+    queryFn: async () => {
+      let query = supabase
+        .from('finance_invoices')
+        .select('*')
+        .order('invoice_date', { ascending: false });
+      
+      if (month) {
+        query = query.eq('month', month);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data as unknown as FinanceInvoice[];
+    },
+  });
+}
+
+export function useSaveInvoice() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: async (invoice: { id?: string; month: string; invoice_date: string; invoice_number: string; control_number?: string | null; description: string; total_usd: number; total_ves: number; is_collected?: boolean; notes?: string | null }) => {
+      if (invoice.id) {
+        const { id, ...rest } = invoice;
+        const { data, error } = await supabase.from('finance_invoices').update(rest).eq('id', id).select().single();
+        if (error) throw error;
+        return data;
+      } else {
+        const { id, ...rest } = invoice as any;
+        const { data, error } = await supabase.from('finance_invoices').insert(rest).select().single();
+        if (error) throw error;
+        return data;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['finance-invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['finance-receivables'] });
+      toast({ title: 'Factura guardada correctamente' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error al guardar factura', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
+export function useDeleteInvoice() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('finance_invoices').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['finance-invoices'] });
+      toast({ title: 'Factura eliminada' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error al eliminar', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
+// =============================================
+// RECEIVABLES
+// =============================================
+
+export function useFinanceReceivables() {
+  return useQuery({
+    queryKey: ['finance-receivables'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('finance_receivables')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data as unknown as FinanceReceivable[];
+    },
+  });
+}
+
+export function useSaveReceivable() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: async (receivable: { id?: string; source?: string; invoice_id?: string | null; description: string; amount_usd: number; amount_ves: number; due_date?: string | null; is_collected?: boolean; notes?: string | null }) => {
+      if (receivable.id) {
+        const { id, ...rest } = receivable;
+        const { data, error } = await supabase.from('finance_receivables').update(rest).eq('id', id).select().single();
+        if (error) throw error;
+        return data;
+      } else {
+        const { id, ...rest } = receivable as any;
+        const { data, error } = await supabase.from('finance_receivables').insert({ ...rest, source: rest.source || 'manual' }).select().single();
+        if (error) throw error;
+        return data;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['finance-receivables'] });
+      toast({ title: 'Cuenta por cobrar guardada' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
+// =============================================
+// UNPAID BUDGET LINES (PAYABLES)
+// =============================================
+
+export function usePayables() {
+  return useQuery({
+    queryKey: ['finance-payables'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('budget_lines')
+        .select('*, budget:budgets(*)')
+        .in('status', ['pendiente', 'vencido'])
+        .order('planned_date');
+      if (error) throw error;
+      return data as unknown as (BudgetLine & { budget: Budget })[];
     },
   });
 }

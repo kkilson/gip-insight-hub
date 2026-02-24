@@ -128,6 +128,33 @@ export type Database = {
         }
         Relationships: []
       }
+      banks: {
+        Row: {
+          code: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       beneficiaries: {
         Row: {
           birth_date: string | null
@@ -287,67 +314,60 @@ export type Database = {
       }
       budget_lines: {
         Row: {
-          account_id: string
           actual_amount_usd: number | null
           actual_payment_date: string | null
           amount_usd: number
           budget_id: string
           can_pay_in_ves: boolean
+          category: string | null
           created_at: string
           description: string
           id: string
-          journal_entry_id: string | null
           planned_date: string
           postpone_reason: string | null
           postponed_date: string | null
           reference_rate: number | null
+          reminder_date: string | null
           status: Database["public"]["Enums"]["budget_status"]
           updated_at: string
         }
         Insert: {
-          account_id: string
           actual_amount_usd?: number | null
           actual_payment_date?: string | null
           amount_usd: number
           budget_id: string
           can_pay_in_ves?: boolean
+          category?: string | null
           created_at?: string
           description: string
           id?: string
-          journal_entry_id?: string | null
           planned_date: string
           postpone_reason?: string | null
           postponed_date?: string | null
           reference_rate?: number | null
+          reminder_date?: string | null
           status?: Database["public"]["Enums"]["budget_status"]
           updated_at?: string
         }
         Update: {
-          account_id?: string
           actual_amount_usd?: number | null
           actual_payment_date?: string | null
           amount_usd?: number
           budget_id?: string
           can_pay_in_ves?: boolean
+          category?: string | null
           created_at?: string
           description?: string
           id?: string
-          journal_entry_id?: string | null
           planned_date?: string
           postpone_reason?: string | null
           postponed_date?: string | null
           reference_rate?: number | null
+          reminder_date?: string | null
           status?: Database["public"]["Enums"]["budget_status"]
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "budget_lines_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "budget_lines_budget_id_fkey"
             columns: ["budget_id"]
@@ -355,18 +375,10 @@ export type Database = {
             referencedRelation: "budgets"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "budget_lines_journal_entry_id_fkey"
-            columns: ["journal_entry_id"]
-            isOneToOne: false
-            referencedRelation: "journal_entries"
-            referencedColumns: ["id"]
-          },
         ]
       }
       budgets: {
         Row: {
-          cost_center_id: string | null
           created_at: string
           created_by: string | null
           currency: Database["public"]["Enums"]["currency_type"]
@@ -382,7 +394,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          cost_center_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: Database["public"]["Enums"]["currency_type"]
@@ -398,7 +409,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          cost_center_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: Database["public"]["Enums"]["currency_type"]
@@ -413,74 +423,7 @@ export type Database = {
           total_spent_usd?: number
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "budgets_cost_center_id_fkey"
-            columns: ["cost_center_id"]
-            isOneToOne: false
-            referencedRelation: "cost_centers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      chart_of_accounts: {
-        Row: {
-          balance_usd: number
-          balance_ves: number
-          class: Database["public"]["Enums"]["account_class"]
-          code: string
-          created_at: string
-          id: string
-          is_active: boolean
-          level: number
-          name: string
-          nature: Database["public"]["Enums"]["account_nature"]
-          parent_id: string | null
-          requires_cost_center: boolean
-          requires_third_party: boolean
-          updated_at: string
-        }
-        Insert: {
-          balance_usd?: number
-          balance_ves?: number
-          class: Database["public"]["Enums"]["account_class"]
-          code: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          level?: number
-          name: string
-          nature: Database["public"]["Enums"]["account_nature"]
-          parent_id?: string | null
-          requires_cost_center?: boolean
-          requires_third_party?: boolean
-          updated_at?: string
-        }
-        Update: {
-          balance_usd?: number
-          balance_ves?: number
-          class?: Database["public"]["Enums"]["account_class"]
-          code?: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          level?: number
-          name?: string
-          nature?: Database["public"]["Enums"]["account_nature"]
-          parent_id?: string | null
-          requires_cost_center?: boolean
-          requires_third_party?: boolean
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "chart_of_accounts_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       clients: {
         Row: {
@@ -669,36 +612,6 @@ export type Database = {
           },
         ]
       }
-      cost_centers: {
-        Row: {
-          code: string
-          created_at: string
-          id: string
-          is_active: boolean
-          name: string
-          type: Database["public"]["Enums"]["cost_center_type"]
-          updated_at: string
-        }
-        Insert: {
-          code: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name: string
-          type: Database["public"]["Enums"]["cost_center_type"]
-          updated_at?: string
-        }
-        Update: {
-          code?: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name?: string
-          type?: Database["public"]["Enums"]["cost_center_type"]
-          updated_at?: string
-        }
-        Relationships: []
-      }
       exchange_rates: {
         Row: {
           created_at: string
@@ -735,47 +648,213 @@ export type Database = {
         }
         Relationships: []
       }
-      finance_audit_logs: {
+      finance_expenses: {
         Row: {
-          action: string
+          amount_usd: number
+          amount_ves: number
           created_at: string
-          entity_id: string
-          entity_type: string
+          created_by: string | null
+          description: string
+          exchange_rate: number | null
+          expense_date: string
           id: string
-          ip_address: string | null
-          new_data: Json | null
-          previous_data: Json | null
-          reason: string | null
-          user_email: string | null
-          user_id: string | null
+          is_paid: boolean
+          month: string
+          notes: string | null
+          paid_at: string | null
+          updated_at: string
         }
         Insert: {
-          action: string
+          amount_usd?: number
+          amount_ves?: number
           created_at?: string
-          entity_id: string
-          entity_type: string
+          created_by?: string | null
+          description: string
+          exchange_rate?: number | null
+          expense_date: string
           id?: string
-          ip_address?: string | null
-          new_data?: Json | null
-          previous_data?: Json | null
-          reason?: string | null
-          user_email?: string | null
-          user_id?: string | null
+          is_paid?: boolean
+          month: string
+          notes?: string | null
+          paid_at?: string | null
+          updated_at?: string
         }
         Update: {
-          action?: string
+          amount_usd?: number
+          amount_ves?: number
           created_at?: string
-          entity_id?: string
-          entity_type?: string
+          created_by?: string | null
+          description?: string
+          exchange_rate?: number | null
+          expense_date?: string
           id?: string
-          ip_address?: string | null
-          new_data?: Json | null
-          previous_data?: Json | null
-          reason?: string | null
-          user_email?: string | null
-          user_id?: string | null
+          is_paid?: boolean
+          month?: string
+          notes?: string | null
+          paid_at?: string | null
+          updated_at?: string
         }
         Relationships: []
+      }
+      finance_income: {
+        Row: {
+          amount_usd: number
+          amount_ves: number
+          bank_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          exchange_rate: number | null
+          id: string
+          income_date: string
+          month: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_usd?: number
+          amount_ves?: number
+          bank_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          exchange_rate?: number | null
+          id?: string
+          income_date: string
+          month: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_usd?: number
+          amount_ves?: number
+          bank_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          exchange_rate?: number | null
+          id?: string
+          income_date?: string
+          month?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_income_bank_id_fkey"
+            columns: ["bank_id"]
+            isOneToOne: false
+            referencedRelation: "banks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_invoices: {
+        Row: {
+          collected_at: string | null
+          control_number: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          invoice_date: string
+          invoice_number: string
+          is_collected: boolean
+          month: string
+          notes: string | null
+          total_usd: number
+          total_ves: number
+          updated_at: string
+        }
+        Insert: {
+          collected_at?: string | null
+          control_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          id?: string
+          invoice_date?: string
+          invoice_number: string
+          is_collected?: boolean
+          month: string
+          notes?: string | null
+          total_usd?: number
+          total_ves?: number
+          updated_at?: string
+        }
+        Update: {
+          collected_at?: string | null
+          control_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          is_collected?: boolean
+          month?: string
+          notes?: string | null
+          total_usd?: number
+          total_ves?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      finance_receivables: {
+        Row: {
+          amount_usd: number
+          amount_ves: number
+          collected_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          due_date: string | null
+          id: string
+          invoice_id: string | null
+          is_collected: boolean
+          notes: string | null
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          amount_usd?: number
+          amount_ves?: number
+          collected_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          due_date?: string | null
+          id?: string
+          invoice_id?: string | null
+          is_collected?: boolean
+          notes?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_usd?: number
+          amount_ves?: number
+          collected_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          due_date?: string | null
+          id?: string
+          invoice_id?: string | null
+          is_collected?: boolean
+          notes?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_receivables_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "finance_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       insurers: {
         Row: {
@@ -818,212 +897,6 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
-      }
-      journal_entries: {
-        Row: {
-          base_currency: Database["public"]["Enums"]["currency_type"]
-          cost_center_id: string | null
-          created_at: string
-          created_by: string | null
-          description: string
-          entry_date: string
-          entry_number: number
-          exchange_rate: number
-          exchange_rate_source: Database["public"]["Enums"]["exchange_rate_source"]
-          id: string
-          is_month_closed: boolean
-          notes: string | null
-          status: Database["public"]["Enums"]["entry_status"]
-          total_credit_usd: number
-          total_credit_ves: number
-          total_debit_usd: number
-          total_debit_ves: number
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          base_currency?: Database["public"]["Enums"]["currency_type"]
-          cost_center_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          description: string
-          entry_date: string
-          entry_number?: number
-          exchange_rate: number
-          exchange_rate_source?: Database["public"]["Enums"]["exchange_rate_source"]
-          id?: string
-          is_month_closed?: boolean
-          notes?: string | null
-          status?: Database["public"]["Enums"]["entry_status"]
-          total_credit_usd?: number
-          total_credit_ves?: number
-          total_debit_usd?: number
-          total_debit_ves?: number
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          base_currency?: Database["public"]["Enums"]["currency_type"]
-          cost_center_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          description?: string
-          entry_date?: string
-          entry_number?: number
-          exchange_rate?: number
-          exchange_rate_source?: Database["public"]["Enums"]["exchange_rate_source"]
-          id?: string
-          is_month_closed?: boolean
-          notes?: string | null
-          status?: Database["public"]["Enums"]["entry_status"]
-          total_credit_usd?: number
-          total_credit_ves?: number
-          total_debit_usd?: number
-          total_debit_ves?: number
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "journal_entries_cost_center_id_fkey"
-            columns: ["cost_center_id"]
-            isOneToOne: false
-            referencedRelation: "cost_centers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      journal_entry_lines: {
-        Row: {
-          account_id: string
-          applies_igtf: boolean
-          cost_center_id: string | null
-          created_at: string
-          credit_usd: number
-          credit_ves: number
-          debit_usd: number
-          debit_ves: number
-          description: string | null
-          entry_id: string
-          id: string
-          line_number: number
-          transaction_type: Database["public"]["Enums"]["transaction_type"]
-        }
-        Insert: {
-          account_id: string
-          applies_igtf?: boolean
-          cost_center_id?: string | null
-          created_at?: string
-          credit_usd?: number
-          credit_ves?: number
-          debit_usd?: number
-          debit_ves?: number
-          description?: string | null
-          entry_id: string
-          id?: string
-          line_number: number
-          transaction_type: Database["public"]["Enums"]["transaction_type"]
-        }
-        Update: {
-          account_id?: string
-          applies_igtf?: boolean
-          cost_center_id?: string | null
-          created_at?: string
-          credit_usd?: number
-          credit_ves?: number
-          debit_usd?: number
-          debit_ves?: number
-          description?: string | null
-          entry_id?: string
-          id?: string
-          line_number?: number
-          transaction_type?: Database["public"]["Enums"]["transaction_type"]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "journal_entry_lines_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "journal_entry_lines_cost_center_id_fkey"
-            columns: ["cost_center_id"]
-            isOneToOne: false
-            referencedRelation: "cost_centers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "journal_entry_lines_entry_id_fkey"
-            columns: ["entry_id"]
-            isOneToOne: false
-            referencedRelation: "journal_entries"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      monthly_closings: {
-        Row: {
-          closed_by: string | null
-          closing_date: string
-          closing_entry_id: string | null
-          created_at: string
-          id: string
-          is_reopened: boolean
-          month: number
-          net_income_usd: number
-          reopen_reason: string | null
-          reopened_at: string | null
-          reopened_by: string | null
-          total_assets_usd: number
-          total_equity_usd: number
-          total_liabilities_usd: number
-          year: number
-        }
-        Insert: {
-          closed_by?: string | null
-          closing_date?: string
-          closing_entry_id?: string | null
-          created_at?: string
-          id?: string
-          is_reopened?: boolean
-          month: number
-          net_income_usd?: number
-          reopen_reason?: string | null
-          reopened_at?: string | null
-          reopened_by?: string | null
-          total_assets_usd?: number
-          total_equity_usd?: number
-          total_liabilities_usd?: number
-          year: number
-        }
-        Update: {
-          closed_by?: string | null
-          closing_date?: string
-          closing_entry_id?: string | null
-          created_at?: string
-          id?: string
-          is_reopened?: boolean
-          month?: number
-          net_income_usd?: number
-          reopen_reason?: string | null
-          reopened_at?: string | null
-          reopened_by?: string | null
-          total_assets_usd?: number
-          total_equity_usd?: number
-          total_liabilities_usd?: number
-          year?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "monthly_closings_closing_entry_id_fkey"
-            columns: ["closing_entry_id"]
-            isOneToOne: false
-            referencedRelation: "journal_entries"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       policies: {
         Row: {
