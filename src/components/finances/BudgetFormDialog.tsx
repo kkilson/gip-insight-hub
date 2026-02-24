@@ -13,11 +13,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Loader2, Upload } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useBudget, useCreateBudget, useUpdateBudget, type Budget, type BudgetFormData, type BudgetLineFormData } from '@/hooks/useFinances';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreatableCombobox } from './CreatableCombobox';
+import { BudgetBulkImportDialog } from './BudgetBulkImportDialog';
 
 const periodOptions = [
   { value: 'mensual', label: 'Mensual' }, { value: 'bimestral', label: 'Bimestral' },
@@ -35,7 +36,6 @@ const currencyOptions = [
 
 const statusOptions = [
   { value: 'pendiente', label: 'Pendiente' }, { value: 'pagado', label: 'Pagado' },
-  { value: 'vencido', label: 'Vencido' }, { value: 'pospuesto', label: 'Pospuesto' },
 ] as const;
 
 const budgetSchema = z.object({
@@ -75,6 +75,7 @@ export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialo
   const updateBudget = useUpdateBudget();
   
   const [lines, setLines] = useState<BudgetLineFormData[]>([]);
+  const [isBulkOpen, setIsBulkOpen] = useState(false);
 
   // Collect unique descriptions from existing lines for combobox
   const descriptionOptions = [...new Set(lines.map(l => l.description).filter(Boolean))].sort();
@@ -222,9 +223,14 @@ export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialo
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-semibold">Líneas del Presupuesto</h3>
-                      <Button type="button" variant="outline" size="sm" onClick={addLine}>
-                        <Plus className="h-4 w-4 mr-1" />Agregar Línea
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button type="button" variant="outline" size="sm" onClick={() => setIsBulkOpen(true)}>
+                          <Upload className="h-4 w-4 mr-1" />Carga Masiva
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" onClick={addLine}>
+                          <Plus className="h-4 w-4 mr-1" />Agregar Línea
+                        </Button>
+                      </div>
                     </div>
                     
                     {lines.length === 0 ? (
@@ -312,6 +318,13 @@ export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialo
             </form>
           </Form>
         )}
+
+        <BudgetBulkImportDialog
+          open={isBulkOpen}
+          onOpenChange={setIsBulkOpen}
+          onImport={(imported) => setLines(prev => [...prev, ...imported])}
+          startDate={form.getValues('start_date')}
+        />
       </DialogContent>
     </Dialog>
   );
