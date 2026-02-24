@@ -12,8 +12,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, TrendingUp, TrendingDown } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Upload } from 'lucide-react';
 import { useExchangeRates, useLatestExchangeRates } from '@/hooks/useFinances';
+import { FinanceBulkImportWizard } from './import/FinanceBulkImportWizard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExchangeRateFormDialog } from './ExchangeRateFormDialog';
 
@@ -26,6 +27,7 @@ const sourceColors: Record<string, string> = {
 
 export function ExchangeRatesTab() {
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   
   const { data: rates, isLoading } = useExchangeRates(50);
   const { data: latestRates } = useLatestExchangeRates();
@@ -92,7 +94,10 @@ export function ExchangeRatesTab() {
       </div>
 
       {/* Add New Rate Button */}
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={() => setImportOpen(true)}>
+          <Upload className="h-4 w-4 mr-2" />Importar
+        </Button>
         <Button onClick={() => setIsFormOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Registrar Tasa
@@ -160,6 +165,8 @@ export function ExchangeRatesTab() {
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
       />
+
+      <FinanceBulkImportWizard open={importOpen} onOpenChange={setImportOpen} module="exchange_rates" />
     </div>
   );
 }

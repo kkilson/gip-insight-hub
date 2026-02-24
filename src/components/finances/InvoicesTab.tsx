@@ -8,8 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload } from 'lucide-react';
 import { useFinanceInvoices, useSaveInvoice, useDeleteInvoice, type FinanceInvoice } from '@/hooks/useFinances';
+import { FinanceBulkImportWizard } from './import/FinanceBulkImportWizard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { CreatableCombobox } from './CreatableCombobox';
@@ -24,6 +25,7 @@ const calcNet = (total: number) => total - calcISLR(total);
 export function InvoicesTab() {
   const [monthFilter, setMonthFilter] = useState(format(new Date(), 'yyyy-MM'));
   const [formOpen, setFormOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [editing, setEditing] = useState<FinanceInvoice | null>(null);
 
   const { data: invoices, isLoading } = useFinanceInvoices(monthFilter);
@@ -66,7 +68,10 @@ export function InvoicesTab() {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-4 justify-between">
         <Input type="month" value={monthFilter} onChange={e => setMonthFilter(e.target.value)} className="w-[200px]" />
-        <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" />Nueva Factura</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setImportOpen(true)}><Upload className="h-4 w-4 mr-2" />Importar</Button>
+          <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" />Nueva Factura</Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -187,6 +192,8 @@ export function InvoicesTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <FinanceBulkImportWizard open={importOpen} onOpenChange={setImportOpen} module="invoices" />
     </div>
   );
 }

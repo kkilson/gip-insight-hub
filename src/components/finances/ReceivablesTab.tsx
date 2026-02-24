@@ -8,8 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Plus, CheckCircle } from 'lucide-react';
+import { Plus, CheckCircle, Upload } from 'lucide-react';
 import { useFinanceReceivables, useSaveReceivable, useFinanceInvoices, type FinanceReceivable } from '@/hooks/useFinances';
+import { FinanceBulkImportWizard } from './import/FinanceBulkImportWizard';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const formatUSD = (n: number) => `$${n.toFixed(2)}`;
@@ -17,6 +18,7 @@ const formatVES = (n: number) => `Bs. ${n.toLocaleString('es-VE', { minimumFract
 
 export function ReceivablesTab() {
   const [formOpen, setFormOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [showCollected, setShowCollected] = useState(false);
 
   const { data: receivables, isLoading } = useFinanceReceivables();
@@ -70,9 +72,12 @@ export function ReceivablesTab() {
           <input type="checkbox" checked={showCollected} onChange={e => setShowCollected(e.target.checked)} id="show-collected" />
           <label htmlFor="show-collected" className="text-sm">Mostrar cobradas</label>
         </div>
-        <Button onClick={() => { setForm({ description: '', amount_usd: 0, amount_ves: 0, due_date: '', notes: '' }); setFormOpen(true); }}>
-          <Plus className="h-4 w-4 mr-2" />Nueva Cuenta por Cobrar
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setImportOpen(true)}><Upload className="h-4 w-4 mr-2" />Importar</Button>
+          <Button onClick={() => { setForm({ description: '', amount_usd: 0, amount_ves: 0, due_date: '', notes: '' }); setFormOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" />Nueva Cuenta por Cobrar
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -146,6 +151,8 @@ export function ReceivablesTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <FinanceBulkImportWizard open={importOpen} onOpenChange={setImportOpen} module="receivables" />
     </div>
   );
 }
