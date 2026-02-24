@@ -167,7 +167,7 @@ export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialo
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar Presupuesto' : 'Nuevo Presupuesto'}</DialogTitle>
         </DialogHeader>
@@ -180,7 +180,7 @@ export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialo
         ) : (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
-              <ScrollArea className="flex-1 px-1">
+              <ScrollArea className="flex-1 px-1" style={{ maxHeight: 'calc(90vh - 10rem)' }}>
                 <div className="space-y-6 pb-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField control={form.control} name="name" render={({ field }) => (
