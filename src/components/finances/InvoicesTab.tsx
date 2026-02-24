@@ -8,16 +8,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Pencil, Trash2, Upload } from 'lucide-react';
 import { useFinanceInvoices, useSaveInvoice, useDeleteInvoice, type FinanceInvoice } from '@/hooks/useFinances';
 import { FinanceBulkImportWizard } from './import/FinanceBulkImportWizard';
+import { BulkActionsBar } from '@/components/ui/BulkActionsBar';
+import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { CreatableCombobox } from './CreatableCombobox';
 
 const formatUSD = (n: number) => `$${n.toFixed(2)}`;
 const formatVES = (n: number) => `Bs. ${n.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
-
 const calcISLR = (total: number) => total / 100;
 const calcTaxUnits = (islr: number) => islr * 5;
 const calcNet = (total: number) => total - calcISLR(total);
@@ -32,32 +34,18 @@ export function InvoicesTab() {
   const { data: allInvoices } = useFinanceInvoices();
   const saveInvoice = useSaveInvoice();
   const deleteInvoice = useDeleteInvoice();
+  const bulk = useBulkSelection(invoices);
 
   const descriptionOptions = [...new Set(allInvoices?.map(i => i.description) || [])].sort();
 
   const [form, setForm] = useState({ invoice_date: '', invoice_number: '', control_number: '', description: '', total_usd: 0, total_ves: 0, is_collected: false, notes: '' });
 
-  const openNew = () => {
-    setEditing(null);
-    setForm({ invoice_date: format(new Date(), 'yyyy-MM-dd'), invoice_number: '', control_number: '', description: '', total_usd: 0, total_ves: 0, is_collected: false, notes: '' });
-    setFormOpen(true);
-  };
-
-  const openEdit = (item: FinanceInvoice) => {
-    setEditing(item);
-    setForm({ invoice_date: item.invoice_date, invoice_number: item.invoice_number, control_number: item.control_number || '', description: item.description, total_usd: item.total_usd, total_ves: item.total_ves, is_collected: item.is_collected, notes: item.notes || '' });
-    setFormOpen(true);
-  };
+  const openNew = () => { setEditing(null); setForm({ invoice_date: format(new Date(), 'yyyy-MM-dd'), invoice_number: '', control_number: '', description: '', total_usd: 0, total_ves: 0, is_collected: false, notes: '' }); setFormOpen(true); };
+  const openEdit = (item: FinanceInvoice) => { setEditing(item); setForm({ invoice_date: item.invoice_date, invoice_number: item.invoice_number, control_number: item.control_number || '', description: item.description, total_usd: item.total_usd, total_ves: item.total_ves, is_collected: item.is_collected, notes: item.notes || '' }); setFormOpen(true); };
 
   const handleSave = async () => {
     const month = form.invoice_date.substring(0, 7);
-    await saveInvoice.mutateAsync({
-      ...(editing ? { id: editing.id } : {}),
-      month, invoice_date: form.invoice_date, invoice_number: form.invoice_number,
-      control_number: form.control_number || null, description: form.description,
-      total_usd: form.total_usd, total_ves: form.total_ves,
-      is_collected: form.is_collected, notes: form.notes || null,
-    });
+    await saveInvoice.mutateAsync({ ...(editing ? { id: editing.id } : {}), month, invoice_date: form.invoice_date, invoice_number: form.invoice_number, control_number: form.control_number || null, description: form.description, total_usd: form.total_usd, total_ves: form.total_ves, is_collected: form.is_collected, notes: form.notes || null });
     setFormOpen(false);
   };
 
@@ -89,17 +77,12 @@ export function InvoicesTab() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>N° Factura</TableHead>
-                    <TableHead>N° Control</TableHead>
-                    <TableHead>Descripción</TableHead>
-                    <TableHead className="text-right">Total USD</TableHead>
-                    <TableHead className="text-right">Total VES</TableHead>
-                    <TableHead className="text-right">ISLR USD</TableHead>
-                    <TableHead className="text-right">UT</TableHead>
-                    <TableHead className="text-right">Neto USD</TableHead>
-                    <TableHead>Cobrada</TableHead>
-                    <TableHead className="w-[100px]">Acciones</TableHead>
+                    <TableHead className="w-[40px]"><Checkbox checked={bulk.isAllSelected} onCheckedChange={bulk.toggleAll} /></TableHead>
+                    <TableHead>Fecha</TableHead><TableHead>N° Factura</TableHead><TableHead>N° Control</TableHead>
+                    <TableHead>Descripción</TableHead><TableHead className="text-right">Total USD</TableHead>
+                    <TableHead className="text-right">Total VES</TableHead><TableHead className="text-right">ISLR USD</TableHead>
+                    <TableHead className="text-right">UT</TableHead><TableHead className="text-right">Neto USD</TableHead>
+                    <TableHead>Cobrada</TableHead><TableHead className="w-[100px]">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -108,7 +91,8 @@ export function InvoicesTab() {
                     const tu = calcTaxUnits(islrUSD);
                     const netUSD = calcNet(inv.total_usd);
                     return (
-                      <TableRow key={inv.id}>
+                      <TableRow key={inv.id} className={bulk.isSelected(inv.id) ? 'bg-muted/50' : ''}>
+                        <TableCell><Checkbox checked={bulk.isSelected(inv.id)} onCheckedChange={() => bulk.toggle(inv.id)} /></TableCell>
                         <TableCell>{format(new Date(inv.invoice_date), 'dd/MM/yyyy')}</TableCell>
                         <TableCell className="font-medium">{inv.invoice_number}</TableCell>
                         <TableCell>{inv.control_number || '-'}</TableCell>
@@ -118,11 +102,7 @@ export function InvoicesTab() {
                         <TableCell className="text-right font-mono text-orange-600">{formatUSD(islrUSD)}</TableCell>
                         <TableCell className="text-right font-mono">{tu.toFixed(2)}</TableCell>
                         <TableCell className="text-right font-mono font-semibold">{formatUSD(netUSD)}</TableCell>
-                        <TableCell>
-                          <Badge variant={inv.is_collected ? 'default' : 'secondary'}>
-                            {inv.is_collected ? 'Sí' : 'No'}
-                          </Badge>
-                        </TableCell>
+                        <TableCell><Badge variant={inv.is_collected ? 'default' : 'secondary'}>{inv.is_collected ? 'Sí' : 'No'}</Badge></TableCell>
                         <TableCell>
                           <div className="flex gap-1">
                             <Button variant="ghost" size="icon" onClick={() => openEdit(inv)}><Pencil className="h-4 w-4" /></Button>
@@ -145,6 +125,16 @@ export function InvoicesTab() {
         </CardContent>
       </Card>
 
+      <BulkActionsBar
+        selectedCount={bulk.selectedCount}
+        onClear={bulk.clearSelection}
+        actions={[{
+          label: 'Eliminar', icon: <Trash2 className="h-4 w-4" />, variant: 'destructive', confirm: true,
+          confirmTitle: '¿Eliminar facturas seleccionadas?',
+          onClick: () => { bulk.selectedIds.forEach(id => deleteInvoice.mutate(id)); bulk.clearSelection(); },
+        }]}
+      />
+
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{editing ? 'Editar Factura' : 'Nueva Factura'}</DialogTitle></DialogHeader>
@@ -154,41 +144,24 @@ export function InvoicesTab() {
               <div><Label>N° Factura *</Label><Input value={form.invoice_number} onChange={e => setForm({ ...form, invoice_number: e.target.value })} /></div>
             </div>
             <div><Label>N° Control</Label><Input value={form.control_number} onChange={e => setForm({ ...form, control_number: e.target.value })} /></div>
-            <div>
-              <Label>Descripción *</Label>
-              <CreatableCombobox
-                value={form.description}
-                onChange={v => setForm({ ...form, description: v })}
-                options={descriptionOptions}
-                placeholder="Escribir o seleccionar concepto..."
-              />
-            </div>
+            <div><Label>Descripción *</Label><CreatableCombobox value={form.description} onChange={v => setForm({ ...form, description: v })} options={descriptionOptions} placeholder="Escribir o seleccionar concepto..." /></div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label>Total USD</Label><Input type="number" step="0.01" value={form.total_usd || ''} onChange={e => setForm({ ...form, total_usd: parseFloat(e.target.value) || 0 })} /></div>
               <div><Label>Total VES</Label><Input type="number" step="0.01" value={form.total_ves || ''} onChange={e => setForm({ ...form, total_ves: parseFloat(e.target.value) || 0 })} /></div>
             </div>
-            
             {form.total_usd > 0 && (
-              <Card className="bg-muted/50">
-                <CardContent className="pt-4 space-y-1 text-sm">
-                  <div className="flex justify-between"><span>Retención ISLR (1%):</span><span className="font-mono">{formatUSD(calcISLR(form.total_usd))}</span></div>
-                  <div className="flex justify-between"><span>Unidades Tributarias:</span><span className="font-mono">{calcTaxUnits(calcISLR(form.total_usd)).toFixed(2)}</span></div>
-                  <div className="flex justify-between font-semibold"><span>Neto a Recibir:</span><span className="font-mono">{formatUSD(calcNet(form.total_usd))}</span></div>
-                </CardContent>
-              </Card>
+              <Card className="bg-muted/50"><CardContent className="pt-4 space-y-1 text-sm">
+                <div className="flex justify-between"><span>Retención ISLR (1%):</span><span className="font-mono">{formatUSD(calcISLR(form.total_usd))}</span></div>
+                <div className="flex justify-between"><span>Unidades Tributarias:</span><span className="font-mono">{calcTaxUnits(calcISLR(form.total_usd)).toFixed(2)}</span></div>
+                <div className="flex justify-between font-semibold"><span>Neto a Recibir:</span><span className="font-mono">{formatUSD(calcNet(form.total_usd))}</span></div>
+              </CardContent></Card>
             )}
-
-            <div className="flex items-center gap-2">
-              <input type="checkbox" checked={form.is_collected} onChange={e => setForm({ ...form, is_collected: e.target.checked })} />
-              <Label>Cobrada</Label>
-            </div>
+            <div className="flex items-center gap-2"><input type="checkbox" checked={form.is_collected} onChange={e => setForm({ ...form, is_collected: e.target.checked })} /><Label>Cobrada</Label></div>
             <div><Label>Notas</Label><Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setFormOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saveInvoice.isPending || !form.description || !form.invoice_number || !form.invoice_date}>
-              {saveInvoice.isPending ? 'Guardando...' : 'Guardar'}
-            </Button>
+            <Button onClick={handleSave} disabled={saveInvoice.isPending || !form.description || !form.invoice_number || !form.invoice_date}>{saveInvoice.isPending ? 'Guardando...' : 'Guardar'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

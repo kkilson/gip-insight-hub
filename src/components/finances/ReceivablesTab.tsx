@@ -8,9 +8,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Plus, CheckCircle, Upload } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Plus, CheckCircle, Upload, Trash2 } from 'lucide-react';
 import { useFinanceReceivables, useSaveReceivable, useFinanceInvoices, type FinanceReceivable } from '@/hooks/useFinances';
 import { FinanceBulkImportWizard } from './import/FinanceBulkImportWizard';
+import { BulkActionsBar } from '@/components/ui/BulkActionsBar';
+import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const formatUSD = (n: number) => `$${n.toFixed(2)}`;
@@ -27,42 +30,36 @@ export function ReceivablesTab() {
 
   const [form, setForm] = useState({ description: '', amount_usd: 0, amount_ves: 0, due_date: '', notes: '' });
 
-  // Combine manual receivables + uncollected invoices
   const uncollectedInvoices = invoices?.filter(i => !i.is_collected).map(i => ({
-    id: `inv-${i.id}`,
-    source: 'invoice' as const,
-    invoice_id: i.id,
+    id: `inv-${i.id}`, source: 'invoice' as const, invoice_id: i.id,
     description: `Factura ${i.invoice_number}: ${i.description}`,
-    amount_usd: i.total_usd - (i.total_usd / 100), // net after ISLR
-    amount_ves: i.total_ves - (i.total_ves / 100),
-    due_date: null,
-    is_collected: false,
-    collected_at: null,
-    notes: null,
-    created_by: null,
-    created_at: i.created_at,
-    updated_at: i.updated_at,
+    amount_usd: i.total_usd - (i.total_usd / 100), amount_ves: i.total_ves - (i.total_ves / 100),
+    due_date: null, is_collected: false, collected_at: null, notes: null,
+    created_by: null, created_at: i.created_at, updated_at: i.updated_at,
   })) || [];
 
   const allReceivables = [...(receivables || []), ...uncollectedInvoices];
   const filtered = showCollected ? allReceivables : allReceivables.filter(r => !r.is_collected);
+  const bulk = useBulkSelection(filtered as any);
 
   const totalPendingUSD = filtered.filter(r => !r.is_collected).reduce((s, r) => s + r.amount_usd, 0);
   const totalPendingVES = filtered.filter(r => !r.is_collected).reduce((s, r) => s + r.amount_ves, 0);
 
   const handleSave = async () => {
-    await saveReceivable.mutateAsync({
-      description: form.description, amount_usd: form.amount_usd, amount_ves: form.amount_ves,
-      due_date: form.due_date || null, source: 'manual', notes: form.notes || null,
-    });
+    await saveReceivable.mutateAsync({ description: form.description, amount_usd: form.amount_usd, amount_ves: form.amount_ves, due_date: form.due_date || null, source: 'manual', notes: form.notes || null });
     setFormOpen(false);
   };
 
   const markCollected = async (item: FinanceReceivable) => {
-    await saveReceivable.mutateAsync({
-      id: item.id, is_collected: true, description: item.description,
-      amount_usd: item.amount_usd, amount_ves: item.amount_ves,
+    await saveReceivable.mutateAsync({ id: item.id, is_collected: true, description: item.description, amount_usd: item.amount_usd, amount_ves: item.amount_ves });
+  };
+
+  const bulkMarkCollected = () => {
+    const manualItems = bulk.selectedItems.filter((item: any) => item.source === 'manual' && !item.is_collected);
+    manualItems.forEach((item: any) => {
+      saveReceivable.mutate({ id: item.id, is_collected: true, description: item.description, amount_usd: item.amount_usd, amount_ves: item.amount_ves });
     });
+    bulk.clearSelection();
   };
 
   return (
@@ -94,28 +91,22 @@ export function ReceivablesTab() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Origen</TableHead>
-                  <TableHead>Descripción</TableHead>
-                  <TableHead className="text-right">USD</TableHead>
-                  <TableHead className="text-right">VES</TableHead>
-                  <TableHead>Vencimiento</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="w-[80px]">Acciones</TableHead>
+                  <TableHead className="w-[40px]"><Checkbox checked={bulk.isAllSelected} onCheckedChange={bulk.toggleAll} /></TableHead>
+                  <TableHead>Origen</TableHead><TableHead>Descripción</TableHead>
+                  <TableHead className="text-right">USD</TableHead><TableHead className="text-right">VES</TableHead>
+                  <TableHead>Vencimiento</TableHead><TableHead>Estado</TableHead><TableHead className="w-[80px]">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map(item => (
-                  <TableRow key={item.id}>
+                  <TableRow key={item.id} className={bulk.isSelected(item.id) ? 'bg-muted/50' : ''}>
+                    <TableCell><Checkbox checked={bulk.isSelected(item.id)} onCheckedChange={() => bulk.toggle(item.id)} /></TableCell>
                     <TableCell><Badge variant="outline">{item.source === 'invoice' ? 'Factura' : 'Manual'}</Badge></TableCell>
                     <TableCell>{item.description}</TableCell>
                     <TableCell className="text-right font-mono">{formatUSD(item.amount_usd)}</TableCell>
                     <TableCell className="text-right font-mono">{formatVES(item.amount_ves)}</TableCell>
                     <TableCell>{item.due_date ? format(new Date(item.due_date), 'dd/MM/yyyy') : '-'}</TableCell>
-                    <TableCell>
-                      <Badge variant={item.is_collected ? 'default' : 'secondary'}>
-                        {item.is_collected ? 'Cobrada' : 'Pendiente'}
-                      </Badge>
-                    </TableCell>
+                    <TableCell><Badge variant={item.is_collected ? 'default' : 'secondary'}>{item.is_collected ? 'Cobrada' : 'Pendiente'}</Badge></TableCell>
                     <TableCell>
                       {!item.is_collected && item.source === 'manual' && (
                         <Button variant="ghost" size="icon" onClick={() => markCollected(item as FinanceReceivable)} title="Marcar como cobrada">
@@ -131,6 +122,17 @@ export function ReceivablesTab() {
         </CardContent>
       </Card>
 
+      <BulkActionsBar
+        selectedCount={bulk.selectedCount}
+        onClear={bulk.clearSelection}
+        actions={[{
+          label: 'Marcar como cobradas', icon: <CheckCircle className="h-4 w-4" />, variant: 'default', confirm: true,
+          confirmTitle: '¿Marcar como cobradas?',
+          confirmDescription: `Se marcarán las cuentas manuales seleccionadas como cobradas.`,
+          onClick: bulkMarkCollected,
+        }]}
+      />
+
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>Nueva Cuenta por Cobrar</DialogTitle></DialogHeader>
@@ -145,9 +147,7 @@ export function ReceivablesTab() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setFormOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saveReceivable.isPending || !form.description}>
-              {saveReceivable.isPending ? 'Guardando...' : 'Guardar'}
-            </Button>
+            <Button onClick={handleSave} disabled={saveReceivable.isPending || !form.description}>{saveReceivable.isPending ? 'Guardando...' : 'Guardar'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
