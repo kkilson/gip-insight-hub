@@ -17,6 +17,7 @@ import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useBudget, useCreateBudget, useUpdateBudget, type Budget, type BudgetFormData, type BudgetLineFormData } from '@/hooks/useFinances';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CreatableCombobox } from './CreatableCombobox';
 
 const periodOptions = [
   { value: 'mensual', label: 'Mensual' }, { value: 'bimestral', label: 'Bimestral' },
@@ -74,6 +75,9 @@ export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialo
   const updateBudget = useUpdateBudget();
   
   const [lines, setLines] = useState<BudgetLineFormData[]>([]);
+
+  // Collect unique descriptions from existing lines for combobox
+  const descriptionOptions = [...new Set(lines.map(l => l.description).filter(Boolean))].sort();
   
   const form = useForm<BudgetFormData>({
     resolver: zodResolver(budgetSchema),
@@ -104,8 +108,10 @@ export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialo
       });
       if (fullBudget.lines) {
         setLines(fullBudget.lines.map(line => ({
-          id: line.id, planned_date: line.planned_date, description: line.description,
+          id: line.id, day_of_month: (line as any).day_of_month || new Date(line.planned_date).getDate(),
+          planned_date: line.planned_date, description: line.description,
           can_pay_in_ves: line.can_pay_in_ves, amount_usd: line.amount_usd,
+          amount_ves: (line as any).amount_ves || 0,
           reference_rate: line.reference_rate,
           status: line.status as BudgetLineFormData['status'],
           reminder_date: line.reminder_date || null, category: line.category || null,
@@ -123,8 +129,8 @@ export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialo
   
   const addLine = () => {
     setLines([...lines, {
-      planned_date: form.getValues('start_date'), description: '', can_pay_in_ves: false,
-      amount_usd: 0, reference_rate: null, status: 'pendiente', reminder_date: null, category: null,
+      day_of_month: 1, planned_date: form.getValues('start_date'), description: '', can_pay_in_ves: false,
+      amount_usd: 0, amount_ves: 0, reference_rate: null, status: 'pendiente', reminder_date: null, category: null,
     }]);
   };
   
@@ -132,10 +138,18 @@ export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialo
   const updateLine = (index: number, field: keyof BudgetLineFormData, value: any) => {
     const newLines = [...lines];
     newLines[index] = { ...newLines[index], [field]: value };
+    // Sync planned_date from day_of_month
+    if (field === 'day_of_month') {
+      const startDate = form.getValues('start_date');
+      const [year, month] = startDate.split('-');
+      const day = String(Math.min(Math.max(value || 1, 1), 28)).padStart(2, '0');
+      newLines[index].planned_date = `${year}-${month}-${day}`;
+    }
     setLines(newLines);
   };
   
-  const totalBudgeted = lines.reduce((sum, line) => sum + (line.amount_usd || 0), 0);
+  const totalUSD = lines.reduce((sum, line) => sum + (line.amount_usd || 0), 0);
+  const totalVES = lines.reduce((sum, line) => sum + (line.amount_ves || 0), 0);
   
   const onSubmit = async (data: BudgetFormData) => {
     try {
@@ -222,12 +236,11 @@ export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialo
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead className="w-[120px]">Fecha</TableHead>
-                              <TableHead className="w-[120px]">Categoría</TableHead>
+                              <TableHead className="w-[80px]">Día</TableHead>
                               <TableHead>Descripción</TableHead>
-                              <TableHead className="w-[110px] text-right">Monto USD</TableHead>
-                              <TableHead className="w-[80px] text-center">VES</TableHead>
-                              <TableHead className="w-[110px]">Recordatorio</TableHead>
+                              <TableHead className="w-[110px] text-right">USD</TableHead>
+                              <TableHead className="w-[110px] text-right">VES</TableHead>
+                              <TableHead className="w-[70px] text-center">Bs?</TableHead>
                               <TableHead className="w-[110px]">Estado</TableHead>
                               <TableHead className="w-[50px]"></TableHead>
                             </TableRow>
@@ -235,12 +248,31 @@ export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialo
                           <TableBody>
                             {lines.map((line, i) => (
                               <TableRow key={i}>
-                                <TableCell><Input type="date" value={line.planned_date} onChange={e => updateLine(i, 'planned_date', e.target.value)} className="h-8" /></TableCell>
-                                <TableCell><Input value={line.category || ''} onChange={e => updateLine(i, 'category', e.target.value)} placeholder="Categoría" className="h-8" /></TableCell>
-                                <TableCell><Input value={line.description} onChange={e => updateLine(i, 'description', e.target.value)} placeholder="Descripción..." className="h-8" /></TableCell>
-                                <TableCell><Input type="number" step="0.01" min="0" value={line.amount_usd || ''} onChange={e => updateLine(i, 'amount_usd', parseFloat(e.target.value) || 0)} className="h-8 text-right" /></TableCell>
-                                <TableCell className="text-center"><Checkbox checked={line.can_pay_in_ves} onCheckedChange={c => updateLine(i, 'can_pay_in_ves', !!c)} /></TableCell>
-                                <TableCell><Input type="date" value={line.reminder_date || ''} onChange={e => updateLine(i, 'reminder_date', e.target.value || null)} className="h-8" /></TableCell>
+                                <TableCell>
+                                  <Input 
+                                    type="number" min="1" max="31" 
+                                    value={line.day_of_month || ''} 
+                                    onChange={e => updateLine(i, 'day_of_month', parseInt(e.target.value) || 1)} 
+                                    className="h-8 w-16" 
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <CreatableCombobox
+                                    value={line.description}
+                                    onChange={v => updateLine(i, 'description', v)}
+                                    options={descriptionOptions}
+                                    placeholder="Concepto..."
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <Input type="number" step="0.01" min="0" value={line.amount_usd || ''} onChange={e => updateLine(i, 'amount_usd', parseFloat(e.target.value) || 0)} className="h-8 text-right" />
+                                </TableCell>
+                                <TableCell>
+                                  <Input type="number" step="0.01" min="0" value={line.amount_ves || ''} onChange={e => updateLine(i, 'amount_ves', parseFloat(e.target.value) || 0)} className="h-8 text-right" />
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <Checkbox checked={line.can_pay_in_ves} onCheckedChange={c => updateLine(i, 'can_pay_in_ves', !!c)} />
+                                </TableCell>
                                 <TableCell>
                                   <Select value={line.status} onValueChange={val => updateLine(i, 'status', val)}>
                                     <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
@@ -257,9 +289,10 @@ export function BudgetFormDialog({ open, onOpenChange, budget }: BudgetFormDialo
                           </TableBody>
                           <TableFooter>
                             <TableRow>
-                              <TableCell colSpan={3} className="text-right font-semibold">Total:</TableCell>
-                              <TableCell className="text-right font-mono font-bold">{formatCurrency(totalBudgeted)}</TableCell>
-                              <TableCell colSpan={4}><Badge variant="secondary">{lines.length} línea{lines.length !== 1 ? 's' : ''}</Badge></TableCell>
+                              <TableCell colSpan={2} className="text-right font-semibold">Total:</TableCell>
+                              <TableCell className="text-right font-mono font-bold">{formatCurrency(totalUSD)}</TableCell>
+                              <TableCell className="text-right font-mono font-bold">Bs. {totalVES.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</TableCell>
+                              <TableCell colSpan={3}><Badge variant="secondary">{lines.length} línea{lines.length !== 1 ? 's' : ''}</Badge></TableCell>
                             </TableRow>
                           </TableFooter>
                         </Table>

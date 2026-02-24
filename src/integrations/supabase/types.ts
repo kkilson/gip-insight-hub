@@ -317,10 +317,12 @@ export type Database = {
           actual_amount_usd: number | null
           actual_payment_date: string | null
           amount_usd: number
+          amount_ves: number
           budget_id: string
           can_pay_in_ves: boolean
           category: string | null
           created_at: string
+          day_of_month: number | null
           description: string
           id: string
           planned_date: string
@@ -335,10 +337,12 @@ export type Database = {
           actual_amount_usd?: number | null
           actual_payment_date?: string | null
           amount_usd: number
+          amount_ves?: number
           budget_id: string
           can_pay_in_ves?: boolean
           category?: string | null
           created_at?: string
+          day_of_month?: number | null
           description: string
           id?: string
           planned_date: string
@@ -353,10 +357,12 @@ export type Database = {
           actual_amount_usd?: number | null
           actual_payment_date?: string | null
           amount_usd?: number
+          amount_ves?: number
           budget_id?: string
           can_pay_in_ves?: boolean
           category?: string | null
           created_at?: string
+          day_of_month?: number | null
           description?: string
           id?: string
           planned_date?: string
