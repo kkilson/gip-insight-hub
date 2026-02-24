@@ -1,14 +1,18 @@
+import { useState } from 'react';
 import { format, isPast } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { usePayables } from '@/hooks/useFinances';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Upload } from 'lucide-react';
+import { FinanceBulkImportWizard } from './import/FinanceBulkImportWizard';
 
 const formatUSD = (n: number) => `$${n.toFixed(2)}`;
 
 export function PayablesTab() {
+  const [importOpen, setImportOpen] = useState(false);
   const { data: payables, isLoading } = usePayables();
 
   const totalUSD = payables?.reduce((s, p) => s + p.amount_usd, 0) || 0;
@@ -16,6 +20,9 @@ export function PayablesTab() {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button variant="outline" onClick={() => setImportOpen(true)}><Upload className="h-4 w-4 mr-2" />Importar</Button>
+      </div>
       <div className="grid grid-cols-2 gap-4">
         <Card>
           <CardContent className="pt-6">
@@ -82,6 +89,8 @@ export function PayablesTab() {
           )}
         </CardContent>
       </Card>
+
+      <FinanceBulkImportWizard open={importOpen} onOpenChange={setImportOpen} module="payables" />
     </div>
   );
 }
