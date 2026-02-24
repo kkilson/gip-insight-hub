@@ -8,15 +8,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, CheckCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useFinanceInvoices, useSaveInvoice, useDeleteInvoice, type FinanceInvoice } from '@/hooks/useFinances';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { CreatableCombobox } from './CreatableCombobox';
 
 const formatUSD = (n: number) => `$${n.toFixed(2)}`;
 const formatVES = (n: number) => `Bs. ${n.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
 
-// ISLR calculation helpers
 const calcISLR = (total: number) => total / 100;
 const calcTaxUnits = (islr: number) => islr * 5;
 const calcNet = (total: number) => total - calcISLR(total);
@@ -27,8 +27,11 @@ export function InvoicesTab() {
   const [editing, setEditing] = useState<FinanceInvoice | null>(null);
 
   const { data: invoices, isLoading } = useFinanceInvoices(monthFilter);
+  const { data: allInvoices } = useFinanceInvoices();
   const saveInvoice = useSaveInvoice();
   const deleteInvoice = useDeleteInvoice();
+
+  const descriptionOptions = [...new Set(allInvoices?.map(i => i.description) || [])].sort();
 
   const [form, setForm] = useState({ invoice_date: '', invoice_number: '', control_number: '', description: '', total_usd: 0, total_ves: 0, is_collected: false, notes: '' });
 
@@ -146,7 +149,15 @@ export function InvoicesTab() {
               <div><Label>N° Factura *</Label><Input value={form.invoice_number} onChange={e => setForm({ ...form, invoice_number: e.target.value })} /></div>
             </div>
             <div><Label>N° Control</Label><Input value={form.control_number} onChange={e => setForm({ ...form, control_number: e.target.value })} /></div>
-            <div><Label>Descripción *</Label><Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+            <div>
+              <Label>Descripción *</Label>
+              <CreatableCombobox
+                value={form.description}
+                onChange={v => setForm({ ...form, description: v })}
+                options={descriptionOptions}
+                placeholder="Escribir o seleccionar concepto..."
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label>Total USD</Label><Input type="number" step="0.01" value={form.total_usd || ''} onChange={e => setForm({ ...form, total_usd: parseFloat(e.target.value) || 0 })} /></div>
               <div><Label>Total VES</Label><Input type="number" step="0.01" value={form.total_ves || ''} onChange={e => setForm({ ...form, total_ves: parseFloat(e.target.value) || 0 })} /></div>

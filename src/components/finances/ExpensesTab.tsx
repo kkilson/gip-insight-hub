@@ -13,6 +13,7 @@ import { useFinanceExpenses, useSaveExpense, useDeleteExpense, type FinanceExpen
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { CreatableCombobox } from './CreatableCombobox';
 
 const formatUSD = (n: number) => `$${n.toFixed(2)}`;
 const formatVES = (n: number) => `Bs. ${n.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
@@ -23,8 +24,11 @@ export function ExpensesTab() {
   const [editing, setEditing] = useState<FinanceExpense | null>(null);
 
   const { data: expenses, isLoading } = useFinanceExpenses(monthFilter);
+  const { data: allExpenses } = useFinanceExpenses();
   const saveExpense = useSaveExpense();
   const deleteExpense = useDeleteExpense();
+
+  const descriptionOptions = [...new Set(allExpenses?.map(e => e.description) || [])].sort();
 
   const [form, setForm] = useState({ expense_date: '', description: '', amount_usd: 0, amount_ves: 0, exchange_rate: null as number | null, is_paid: true, notes: '' });
 
@@ -116,12 +120,19 @@ export function ExpensesTab() {
           <DialogHeader><DialogTitle>{editing ? 'Editar Egreso' : 'Nuevo Egreso'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div><Label>Fecha *</Label><Input type="date" value={form.expense_date} onChange={e => setForm({ ...form, expense_date: e.target.value })} /></div>
-            <div><Label>Descripción *</Label><Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Concepto del gasto" /></div>
+            <div>
+              <Label>Descripción / Concepto *</Label>
+              <CreatableCombobox
+                value={form.description}
+                onChange={v => setForm({ ...form, description: v })}
+                options={descriptionOptions}
+                placeholder="Escribir o seleccionar concepto..."
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label>Monto USD</Label><Input type="number" step="0.01" value={form.amount_usd || ''} onChange={e => setForm({ ...form, amount_usd: parseFloat(e.target.value) || 0 })} /></div>
               <div><Label>Monto VES</Label><Input type="number" step="0.01" value={form.amount_ves || ''} onChange={e => setForm({ ...form, amount_ves: parseFloat(e.target.value) || 0 })} /></div>
             </div>
-            <div><Label>Tasa de cambio (opcional)</Label><Input type="number" step="0.01" value={form.exchange_rate || ''} onChange={e => setForm({ ...form, exchange_rate: parseFloat(e.target.value) || null })} /></div>
             <div className="flex items-center gap-2">
               <Switch checked={form.is_paid} onCheckedChange={v => setForm({ ...form, is_paid: v })} />
               <Label>Pagado</Label>
