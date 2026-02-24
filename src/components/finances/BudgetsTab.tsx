@@ -8,11 +8,12 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Search, Eye, Pencil } from 'lucide-react';
-import { useBudgets, type Budget } from '@/hooks/useFinances';
+import { Plus, Search, Eye, Pencil, Trash2 } from 'lucide-react';
+import { useBudgets, useDeleteBudget, type Budget } from '@/hooks/useFinances';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BudgetFormDialog } from './BudgetFormDialog';
 import { BudgetDetailDialog } from './BudgetDetailDialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(amount);
@@ -31,7 +32,8 @@ export function BudgetsTab() {
   const [viewingBudgetId, setViewingBudgetId] = useState<string | null>(null);
   
   const { data: budgets, isLoading } = useBudgets();
-  
+  const deleteBudget = useDeleteBudget();
+
   const filteredBudgets = budgets?.filter(budget =>
     !search || budget.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -97,6 +99,21 @@ export function BudgetsTab() {
                         <div className="flex gap-1">
                           <Button variant="ghost" size="icon" onClick={() => setViewingBudgetId(budget.id)}><Eye className="h-4 w-4" /></Button>
                           <Button variant="ghost" size="icon" onClick={() => handleEdit(budget)}><Pencil className="h-4 w-4" /></Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Eliminar presupuesto?</AlertDialogTitle>
+                                <AlertDialogDescription>Se eliminará "{budget.name}" y todas sus líneas. Esta acción no se puede deshacer.</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteBudget.mutate(budget.id)}>Eliminar</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </TableCell>
                     </TableRow>
