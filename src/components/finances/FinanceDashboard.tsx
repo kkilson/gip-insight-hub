@@ -89,7 +89,7 @@ export function FinanceDashboard() {
             <CardContent>
               <div className={`text-2xl font-bold ${card.valueColor}`}>{formatUSD(card.usd)}</div>
               {card.ves !== null && (
-                <p className="text-xs text-muted-foreground mt-1">{formatVES(card.ves)}</p>
+                <p className={`text-2xl font-bold mt-1 ${card.valueColor}`}>{formatVES(card.ves)}</p>
               )}
             </CardContent>
           </Card>
