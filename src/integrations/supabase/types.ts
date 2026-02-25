@@ -1416,6 +1416,38 @@ export type Database = {
           },
         ]
       }
+      sales_notes: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          opportunity_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          opportunity_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          opportunity_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_notes_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "sales_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_opportunities: {
         Row: {
           client_id: string | null
