@@ -38,6 +38,7 @@ export function SalesTableView({ opportunities, onViewDetail, onEdit }: Props) {
       <TableHeader>
         <TableRow>
           <TableHead>Prospecto</TableHead>
+          <TableHead>Asesor</TableHead>
           <TableHead>Empresa</TableHead>
           <TableHead>Etapa</TableHead>
           <TableHead className="text-right">Prima Total</TableHead>
@@ -50,7 +51,7 @@ export function SalesTableView({ opportunities, onViewDetail, onEdit }: Props) {
       <TableBody>
         {opportunities.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+            <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
               No hay oportunidades registradas
             </TableCell>
           </TableRow>
@@ -63,6 +64,7 @@ export function SalesTableView({ opportunities, onViewDetail, onEdit }: Props) {
                   {opp.prospect_email && <p className="text-xs text-muted-foreground">{opp.prospect_email}</p>}
                 </div>
               </TableCell>
+              <TableCell className="text-sm">{opp.advisor?.full_name ?? <span className="text-muted-foreground">Sin asignar</span>}</TableCell>
               <TableCell>{opp.prospect_company ?? '-'}</TableCell>
               <TableCell>
                 <Select

@@ -26,12 +26,22 @@ export function OpportunityFormDialog({ open, onOpenChange, opportunity }: Props
     notes: '',
     expected_close_date: '',
     client_id: '' as string,
+    advisor_id: '' as string,
   });
 
   const { data: clients } = useQuery({
     queryKey: ['clients-for-sales'],
     queryFn: async () => {
       const { data, error } = await supabase.from('clients').select('id, first_name, last_name').order('first_name');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: advisors } = useQuery({
+    queryKey: ['advisors-for-sales'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('advisors').select('id, full_name').eq('is_active', true).order('full_name');
       if (error) throw error;
       return data;
     },
@@ -48,12 +58,13 @@ export function OpportunityFormDialog({ open, onOpenChange, opportunity }: Props
         notes: opportunity.notes ?? '',
         expected_close_date: opportunity.expected_close_date ?? '',
         client_id: opportunity.client_id ?? '',
+        advisor_id: opportunity.advisor_id ?? '',
       });
     } else {
       setForm({
         prospect_name: '', prospect_email: '', prospect_phone: '',
         prospect_company: '', stage: 'lead_identificado', notes: '',
-        expected_close_date: '', client_id: '',
+        expected_close_date: '', client_id: '', advisor_id: '',
       });
     }
   }, [opportunity, open]);
@@ -80,6 +91,7 @@ export function OpportunityFormDialog({ open, onOpenChange, opportunity }: Props
       notes: form.notes || undefined,
       expected_close_date: form.expected_close_date || null,
       client_id: form.client_id && form.client_id !== 'none' ? form.client_id : null,
+      advisor_id: form.advisor_id && form.advisor_id !== 'none' ? form.advisor_id : null,
     }, {
       onSuccess: () => onOpenChange(false),
     });
@@ -100,6 +112,18 @@ export function OpportunityFormDialog({ open, onOpenChange, opportunity }: Props
                 <SelectItem value="none">Ninguno (prospecto nuevo)</SelectItem>
                 {clients?.map(c => (
                   <SelectItem key={c.id} value={c.id}>{c.first_name} {c.last_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Asesor asignado (opcional)</Label>
+            <Select value={form.advisor_id || 'none'} onValueChange={v => setForm(f => ({ ...f, advisor_id: v }))}>
+              <SelectTrigger><SelectValue placeholder="Seleccionar asesor..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sin asignar</SelectItem>
+                {advisors?.map(a => (
+                  <SelectItem key={a.id} value={a.id}>{a.full_name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

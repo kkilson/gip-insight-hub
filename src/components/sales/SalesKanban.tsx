@@ -91,6 +91,9 @@ export function SalesKanban({ opportunities, onViewDetail }: Props) {
             {opp.prospect_company && (
               <p className="text-xs text-muted-foreground truncate">{opp.prospect_company}</p>
             )}
+            {opp.advisor?.full_name && (
+              <p className="text-xs text-muted-foreground truncate">👤 {opp.advisor.full_name}</p>
+            )}
           </div>
           <Button
             variant="ghost"

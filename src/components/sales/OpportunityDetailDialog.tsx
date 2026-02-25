@@ -165,7 +165,8 @@ export function OpportunityDetailDialog({ open, onOpenChange, opportunity }: Pro
         <ScrollArea className="px-6 pb-6 max-h-[calc(90vh-5rem)]">
           <div className="space-y-5">
             {/* Info */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+              {opportunity.advisor?.full_name && <div><span className="text-muted-foreground">Asesor:</span> {opportunity.advisor.full_name}</div>}
               {opportunity.prospect_email && <div><span className="text-muted-foreground">Email:</span> {opportunity.prospect_email}</div>}
               {opportunity.prospect_phone && <div><span className="text-muted-foreground">Teléfono:</span> {opportunity.prospect_phone}</div>}
               {opportunity.prospect_company && <div><span className="text-muted-foreground">Empresa:</span> {opportunity.prospect_company}</div>}
