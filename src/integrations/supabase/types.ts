@@ -1488,6 +1488,7 @@ export type Database = {
       }
       sales_opportunities: {
         Row: {
+          advisor_id: string | null
           client_id: string | null
           created_at: string
           created_by: string | null
@@ -1502,6 +1503,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          advisor_id?: string | null
           client_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -1516,6 +1518,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          advisor_id?: string | null
           client_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -1530,6 +1533,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sales_opportunities_advisor_id_fkey"
+            columns: ["advisor_id"]
+            isOneToOne: false
+            referencedRelation: "advisors"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sales_opportunities_client_id_fkey"
             columns: ["client_id"]

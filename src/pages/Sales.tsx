@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, LayoutGrid, List, DollarSign, TrendingUp, Users, Target } from 'lucide-react';
 import { useSalesOpportunities, type SalesOpportunity } from '@/hooks/useSales';
 import { SalesKanban } from '@/components/sales/SalesKanban';
 import { SalesTableView } from '@/components/sales/SalesTable';
 import { OpportunityFormDialog } from '@/components/sales/OpportunityFormDialog';
 import { OpportunityDetailDialog } from '@/components/sales/OpportunityDetailDialog';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('es-EC', { style: 'currency', currency: 'USD' }).format(n);
@@ -18,20 +20,38 @@ export default function Sales() {
   const [editOpp, setEditOpp] = useState<SalesOpportunity | null>(null);
   const [detailOppId, setDetailOppId] = useState<string | null>(null);
   const [view, setView] = useState<'kanban' | 'table'>('kanban');
+  const [advisorFilter, setAdvisorFilter] = useState<string>('all');
 
-  const detailOpp = opportunities.find((o) => o.id === detailOppId) ?? null;
+  const { data: advisors = [] } = useQuery({
+    queryKey: ['advisors-for-sales-filter'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('advisors').select('id, full_name').eq('is_active', true).order('full_name');
+      if (error) throw error;
+      return data;
+    },
+  });
 
-  const totalPremium = opportunities.reduce(
+  const filteredOpportunities = advisorFilter === 'all'
+    ? opportunities
+    : advisorFilter === 'unassigned'
+      ? opportunities.filter(o => !o.advisor_id)
+      : opportunities.filter(o => o.advisor_id === advisorFilter);
+
+  const detailOpp = filteredOpportunities.find((o) => o.id === detailOppId)
+    ?? opportunities.find((o) => o.id === detailOppId)
+    ?? null;
+
+  const totalPremium = filteredOpportunities.reduce(
     (s, o) => s + ((o.products ?? []).find(p => p.is_selected)?.annual_premium ?? 0), 0
   );
-  const totalCommission = opportunities.reduce(
+  const totalCommission = filteredOpportunities.reduce(
     (s, o) => {
       const sel = (o.products ?? []).find(p => p.is_selected);
       return s + (sel ? sel.annual_premium * (sel.commission_rate / 100) : 0);
     }, 0
   );
-  const activeOpps = opportunities.filter(o => !['ganado', 'perdido', 'postergado'].includes(o.stage));
-  const wonOpps = opportunities.filter(o => o.stage === 'ganado');
+  const activeOpps = filteredOpportunities.filter(o => !['ganado', 'perdido', 'postergado'].includes(o.stage));
+  const wonOpps = filteredOpportunities.filter(o => o.stage === 'ganado');
 
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col overflow-hidden">
@@ -42,6 +62,18 @@ export default function Sales() {
             <p className="text-muted-foreground">Pipeline de ventas y seguimiento de oportunidades</p>
           </div>
           <div className="flex items-center gap-2">
+            <Select value={advisorFilter} onValueChange={setAdvisorFilter}>
+              <SelectTrigger className="w-48 h-9">
+                <SelectValue placeholder="Filtrar por asesor" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los asesores</SelectItem>
+                <SelectItem value="unassigned">Sin asignar</SelectItem>
+                {advisors.map(a => (
+                  <SelectItem key={a.id} value={a.id}>{a.full_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <div className="flex border rounded-md">
               <Button
                 variant={view === 'kanban' ? 'default' : 'ghost'}
@@ -105,10 +137,10 @@ export default function Sales() {
         {isLoading ? (
           <p className="text-center text-muted-foreground py-8">Cargando...</p>
         ) : view === 'kanban' ? (
-          <SalesKanban opportunities={opportunities} onViewDetail={(opp) => setDetailOppId(opp.id)} />
+          <SalesKanban opportunities={filteredOpportunities} onViewDetail={(opp) => setDetailOppId(opp.id)} />
         ) : (
           <SalesTableView
-            opportunities={opportunities}
+            opportunities={filteredOpportunities}
             onViewDetail={(opp) => setDetailOppId(opp.id)}
             onEdit={(opp) => { setEditOpp(opp); setShowForm(true); }}
           />

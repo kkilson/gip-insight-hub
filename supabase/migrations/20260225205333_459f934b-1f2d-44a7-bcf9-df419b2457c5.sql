@@ -1,0 +1,1 @@
+ALTER TABLE public.sales_opportunities ADD COLUMN advisor_id uuid REFERENCES public.advisors(id) ON DELETE SET NULL;

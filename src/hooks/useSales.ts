@@ -38,6 +38,7 @@ export const getStageColor = (stage: SalesStage) =>
 export interface SalesOpportunity {
   id: string;
   client_id: string | null;
+  advisor_id: string | null;
   prospect_name: string;
   prospect_email: string | null;
   prospect_phone: string | null;
@@ -50,6 +51,7 @@ export interface SalesOpportunity {
   updated_at: string;
   products?: SalesOpportunityProduct[];
   client?: { first_name: string; last_name: string } | null;
+  advisor?: { full_name: string } | null;
 }
 
 export interface SalesOpportunityProduct {
@@ -119,6 +121,7 @@ export function useSalesOpportunities() {
         .select(`
           *,
           client:clients(first_name, last_name),
+          advisor:advisors(full_name),
           products:sales_opportunity_products(
             *,
             insurer:insurers(name),
@@ -138,6 +141,7 @@ export function useSaveOpportunity() {
     mutationFn: async (opp: {
       id?: string;
       client_id?: string | null;
+      advisor_id?: string | null;
       prospect_name: string;
       prospect_email?: string;
       prospect_phone?: string;
