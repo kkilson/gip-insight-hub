@@ -231,25 +231,36 @@ ${brokerSettings?.phone ? `Teléfono: ${brokerSettings.phone}` : ''}
 Este es un mensaje automático generado por el sistema.
         `.trim();
 
-        // Log the email that would be sent (for now, since we don't have email service configured)
-        console.log(`[process-renewals] Would send email to: ${client.email}`);
-        console.log(`[process-renewals] Subject: ${emailSubject}`);
-        console.log(`[process-renewals] Body preview: ${emailBody.substring(0, 200)}...`);
+        // Send email via Resend
+        const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+        if (!RESEND_API_KEY) {
+          console.warn(`[process-renewals] RESEND_API_KEY not configured, skipping email for ${renewal.id}`);
+          results.errors.push(`${renewal.id}: RESEND_API_KEY not configured`);
+          continue;
+        }
 
-        // TODO: Integrate with actual email service (Resend, SendGrid, etc.)
-        // For now, we'll mark it as sent for demonstration
-        // In production, uncomment and use actual email sending:
-        /*
-        const { error: emailError } = await supabase.functions.invoke('send-email', {
-          body: {
-            to: client.email,
+        const resendResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: 'GIP Asesores <onboarding@resend.dev>',
+            to: [client.email],
             subject: emailSubject,
             text: emailBody,
-          }
+          }),
         });
+
+        const resendData = await resendResponse.json();
         
-        if (emailError) throw emailError;
-        */
+        if (!resendResponse.ok) {
+          console.error(`[process-renewals] Resend error for ${renewal.id}:`, resendData);
+          throw new Error(resendData.message || 'Failed to send email');
+        }
+
+        console.log(`[process-renewals] Email sent for renewal ${renewal.id}, Resend ID: ${resendData.id}`);
 
         // Update renewal status
         const { error: updateError } = await supabase

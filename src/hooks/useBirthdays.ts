@@ -196,16 +196,67 @@ export function useBirthdaySend() {
       clientId,
       channels,
       year,
+      clientName,
+      clientEmail,
     }: {
       clientId: string;
       channels: ('whatsapp' | 'email')[];
       year: number;
+      clientName?: string;
+      clientEmail?: string;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) throw new Error('No authenticated user');
 
-      // For now, just record the send - actual sending will be implemented later
+      let emailStatus: string | null = channels.includes('email') ? 'pendiente' : null;
+
+      // Send email if channel selected and email available
+      if (channels.includes('email') && clientEmail) {
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData?.session?.access_token;
+          
+          const response = await supabase.functions.invoke('send-email', {
+            body: {
+              to: clientEmail,
+              subject: `¡Feliz Cumpleaños ${clientName || ''}!`.trim(),
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                  <div style="text-align: center; padding: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white;">
+                    <h1 style="font-size: 28px; margin: 0;">🎂 ¡Feliz Cumpleaños!</h1>
+                    <p style="font-size: 18px; margin-top: 10px;">${clientName || 'Estimado/a cliente'}</p>
+                  </div>
+                  <div style="padding: 20px; text-align: center;">
+                    <p style="font-size: 16px; color: #333; line-height: 1.6;">
+                      En este día tan especial, queremos enviarle nuestros más sinceros deseos de felicidad, salud y prosperidad.
+                    </p>
+                    <p style="font-size: 16px; color: #333; line-height: 1.6;">
+                      ¡Que este nuevo año de vida esté lleno de grandes momentos!
+                    </p>
+                    <p style="font-size: 14px; color: #666; margin-top: 30px;">
+                      Con cariño,<br/>
+                      <strong>GIP Asesores Integrales</strong>
+                    </p>
+                  </div>
+                </div>
+              `,
+            },
+          });
+
+          if (response.error) {
+            console.error('Error sending birthday email:', response.error);
+            emailStatus = 'error';
+          } else {
+            emailStatus = 'enviado';
+          }
+        } catch (err) {
+          console.error('Error invoking send-email:', err);
+          emailStatus = 'error';
+        }
+      }
+
+      // Record the send
       const { data, error } = await supabase
         .from('birthday_sends')
         .insert({
@@ -213,7 +264,7 @@ export function useBirthdaySend() {
           send_year: year,
           channels: channels,
           status_whatsapp: channels.includes('whatsapp') ? 'pendiente' : null,
-          status_email: channels.includes('email') ? 'pendiente' : null,
+          status_email: emailStatus,
           sent_by: user.id,
         })
         .select()
