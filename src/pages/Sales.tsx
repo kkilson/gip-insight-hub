@@ -20,10 +20,13 @@ export default function Sales() {
   const [view, setView] = useState<'kanban' | 'table'>('kanban');
 
   const totalPremium = opportunities.reduce(
-    (s, o) => s + (o.products ?? []).reduce((ps, p) => ps + p.annual_premium, 0), 0
+    (s, o) => s + ((o.products ?? []).find(p => p.is_selected)?.annual_premium ?? 0), 0
   );
   const totalCommission = opportunities.reduce(
-    (s, o) => s + (o.products ?? []).reduce((ps, p) => ps + p.annual_premium * (p.commission_rate / 100), 0), 0
+    (s, o) => {
+      const sel = (o.products ?? []).find(p => p.is_selected);
+      return s + (sel ? sel.annual_premium * (sel.commission_rate / 100) : 0);
+    }, 0
   );
   const activeOpps = opportunities.filter(o => !['ganado', 'perdido', 'postergado'].includes(o.stage));
   const wonOpps = opportunities.filter(o => o.stage === 'ganado');

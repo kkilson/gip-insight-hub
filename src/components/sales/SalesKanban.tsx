@@ -35,8 +35,10 @@ export function SalesKanban({ opportunities, onViewDetail }: Props) {
   const getOppsForStage = (stage: SalesStage) =>
     opportunities.filter(o => o.stage === stage);
 
-  const totalPremium = (opp: SalesOpportunity) =>
-    (opp.products ?? []).reduce((s, p) => s + p.annual_premium, 0);
+  const selectedPremium = (opp: SalesOpportunity) => {
+    const sel = (opp.products ?? []).find(p => p.is_selected);
+    return sel ? sel.annual_premium : 0;
+  };
 
   const handleDragStart = (e: DragEvent, opp: SalesOpportunity) => {
     setDraggingId(opp.id);
@@ -99,9 +101,9 @@ export function SalesKanban({ opportunities, onViewDetail }: Props) {
             <Eye className="h-3 w-3" />
           </Button>
         </div>
-        {totalPremium(opp) > 0 && (
+        {selectedPremium(opp) > 0 && (
           <p className="text-xs font-medium flex items-center gap-1">
-            <DollarSign className="h-3 w-3" /> {fmt(totalPremium(opp))}
+            <DollarSign className="h-3 w-3" /> {fmt(selectedPremium(opp))}
           </p>
         )}
       </CardContent>
@@ -114,7 +116,7 @@ export function SalesKanban({ opportunities, onViewDetail }: Props) {
         <div className="flex gap-3 pb-4 min-w-max">
           {pipelineStages.map(stage => {
             const stageOpps = getOppsForStage(stage.value);
-            const stageTotal = stageOpps.reduce((s, o) => s + totalPremium(o), 0);
+            const stageTotal = stageOpps.reduce((s, o) => s + selectedPremium(o), 0);
             const isOver = dropTarget === stage.value;
             return (
               <div key={stage.value} className="w-64 shrink-0">

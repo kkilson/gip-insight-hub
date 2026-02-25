@@ -61,8 +61,33 @@ export interface SalesOpportunityProduct {
   commission_rate: number;
   payment_frequency: string;
   notes: string | null;
+  is_selected: boolean;
   insurer?: { name: string } | null;
   product?: { name: string } | null;
+}
+
+export function useToggleProductSelection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ productId, opportunityId, selected }: { productId: string; opportunityId: string; selected: boolean }) => {
+      // If selecting, deselect all others first
+      if (selected) {
+        await supabase
+          .from('sales_opportunity_products')
+          .update({ is_selected: false })
+          .eq('opportunity_id', opportunityId);
+      }
+      const { error } = await supabase
+        .from('sales_opportunity_products')
+        .update({ is_selected: selected })
+        .eq('id', productId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['sales-opportunities'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 }
 
 export function useSalesOpportunities() {
