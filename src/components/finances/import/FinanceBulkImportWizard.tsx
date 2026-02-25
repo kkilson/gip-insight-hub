@@ -180,6 +180,7 @@ export function FinanceBulkImportWizard({ open, onOpenChange, module, banks }: F
           const month = row.expense_date?.substring(0, 7) || '';
           const { error } = await supabase.from('finance_expenses').insert({
             expense_date: row.expense_date, month, description: row.description,
+            beneficiary: row.beneficiary || null,
             amount_usd: row.amount_usd || 0, amount_ves: row.amount_ves || 0,
             is_paid: row.is_paid ?? true, notes: row.notes, created_by: user.user?.id,
           });
@@ -191,34 +192,6 @@ export function FinanceBulkImportWizard({ open, onOpenChange, module, banks }: F
             control_number: row.control_number || null, description: row.description,
             total_usd: row.total_usd || 0, total_ves: row.total_ves || 0,
             is_collected: row.is_collected ?? false, notes: row.notes, created_by: user.user?.id,
-          });
-          insertError = error;
-        } else if (module === 'receivables') {
-          const { error } = await supabase.from('finance_receivables').insert({
-            description: row.description, amount_usd: row.amount_usd || 0,
-            amount_ves: row.amount_ves || 0, due_date: row.due_date || null,
-            source: 'manual', notes: row.notes, created_by: user.user?.id,
-          });
-          insertError = error;
-        } else if (module === 'payables') {
-          // For payables we need to find/create budget and insert budget_line
-          let budgetId: string | null = null;
-          if (row.budget_name) {
-            const { data: existing } = await supabase.from('budgets')
-              .select('id').ilike('name', row.budget_name).limit(1).maybeSingle();
-            budgetId = existing?.id || null;
-          }
-          if (!budgetId) {
-            // Skip if no matching budget
-            errors++;
-            setImportProgress(Math.round(((i + 1) / validRows.length) * 100));
-            continue;
-          }
-          const { error } = await supabase.from('budget_lines').insert({
-            budget_id: budgetId, description: row.description,
-            planned_date: row.planned_date, amount_usd: row.amount_usd || 0,
-            amount_ves: row.amount_ves || 0, category: row.category || null,
-            day_of_month: row.day_of_month || null, status: 'pendiente',
           });
           insertError = error;
         } else if (module === 'exchange_rates') {
@@ -256,9 +229,7 @@ export function FinanceBulkImportWizard({ open, onOpenChange, module, banks }: F
     const queryKeys: Record<FinanceModuleType, string[]> = {
       income: ['finance-income'],
       expenses: ['finance-expenses'],
-      invoices: ['finance-invoices', 'finance-receivables'],
-      receivables: ['finance-receivables'],
-      payables: ['finance-payables', 'budgets'],
+      invoices: ['finance-invoices'],
       exchange_rates: ['exchange-rates'],
     };
     queryKeys[module].forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));

@@ -658,6 +658,7 @@ export type Database = {
         Row: {
           amount_usd: number
           amount_ves: number
+          beneficiary: string | null
           created_at: string
           created_by: string | null
           description: string
@@ -673,6 +674,7 @@ export type Database = {
         Insert: {
           amount_usd?: number
           amount_ves?: number
+          beneficiary?: string | null
           created_at?: string
           created_by?: string | null
           description: string
@@ -688,6 +690,7 @@ export type Database = {
         Update: {
           amount_usd?: number
           amount_ves?: number
+          beneficiary?: string | null
           created_at?: string
           created_by?: string | null
           description?: string

@@ -5,8 +5,6 @@ import { BudgetsTab } from '@/components/finances/BudgetsTab';
 import { IncomeTab } from '@/components/finances/IncomeTab';
 import { ExpensesTab } from '@/components/finances/ExpensesTab';
 import { InvoicesTab } from '@/components/finances/InvoicesTab';
-import { ReceivablesTab } from '@/components/finances/ReceivablesTab';
-import { PayablesTab } from '@/components/finances/PayablesTab';
 import { ExchangeRatesTab } from '@/components/finances/ExchangeRatesTab';
 
 export default function Finances() {
@@ -28,8 +26,6 @@ export default function Finances() {
           <TabsTrigger value="income">Ingresos</TabsTrigger>
           <TabsTrigger value="expenses">Egresos</TabsTrigger>
           <TabsTrigger value="invoices">Facturación</TabsTrigger>
-          <TabsTrigger value="receivables">Cuentas x Cobrar</TabsTrigger>
-          <TabsTrigger value="payables">Cuentas x Pagar</TabsTrigger>
           <TabsTrigger value="rates">Tasas de Cambio</TabsTrigger>
         </TabsList>
 
@@ -39,8 +35,6 @@ export default function Finances() {
           <TabsContent value="income" className="mt-0"><IncomeTab /></TabsContent>
           <TabsContent value="expenses" className="mt-0"><ExpensesTab /></TabsContent>
           <TabsContent value="invoices" className="mt-0"><InvoicesTab /></TabsContent>
-          <TabsContent value="receivables" className="mt-0"><ReceivablesTab /></TabsContent>
-          <TabsContent value="payables" className="mt-0"><PayablesTab /></TabsContent>
           <TabsContent value="rates" className="mt-0"><ExchangeRatesTab /></TabsContent>
         </div>
       </Tabs>
