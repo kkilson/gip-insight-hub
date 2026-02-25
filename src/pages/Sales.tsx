@@ -16,8 +16,10 @@ export default function Sales() {
   const { data: opportunities = [], isLoading } = useSalesOpportunities();
   const [showForm, setShowForm] = useState(false);
   const [editOpp, setEditOpp] = useState<SalesOpportunity | null>(null);
-  const [detailOpp, setDetailOpp] = useState<SalesOpportunity | null>(null);
+  const [detailOppId, setDetailOppId] = useState<string | null>(null);
   const [view, setView] = useState<'kanban' | 'table'>('kanban');
+
+  const detailOpp = opportunities.find((o) => o.id === detailOppId) ?? null;
 
   const totalPremium = opportunities.reduce(
     (s, o) => s + ((o.products ?? []).find(p => p.is_selected)?.annual_premium ?? 0), 0
@@ -103,11 +105,11 @@ export default function Sales() {
         {isLoading ? (
           <p className="text-center text-muted-foreground py-8">Cargando...</p>
         ) : view === 'kanban' ? (
-          <SalesKanban opportunities={opportunities} onViewDetail={setDetailOpp} />
+          <SalesKanban opportunities={opportunities} onViewDetail={(opp) => setDetailOppId(opp.id)} />
         ) : (
           <SalesTableView
             opportunities={opportunities}
-            onViewDetail={setDetailOpp}
+            onViewDetail={(opp) => setDetailOppId(opp.id)}
             onEdit={(opp) => { setEditOpp(opp); setShowForm(true); }}
           />
         )}
@@ -119,8 +121,8 @@ export default function Sales() {
         opportunity={editOpp}
       />
       <OpportunityDetailDialog
-        open={!!detailOpp}
-        onOpenChange={(open) => { if (!open) setDetailOpp(null); }}
+        open={!!detailOppId}
+        onOpenChange={(open) => { if (!open) setDetailOppId(null); }}
         opportunity={detailOpp}
       />
     </div>
