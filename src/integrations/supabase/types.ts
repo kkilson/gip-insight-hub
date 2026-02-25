@@ -1416,6 +1416,44 @@ export type Database = {
           },
         ]
       }
+      sales_investments: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          investment_date: string
+          opportunity_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          description: string
+          id?: string
+          investment_date?: string
+          opportunity_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          investment_date?: string
+          opportunity_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_investments_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "sales_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_notes: {
         Row: {
           content: string
