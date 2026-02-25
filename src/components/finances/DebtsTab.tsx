@@ -125,7 +125,7 @@ export function DebtsTab() {
         <DialogContent>
           <DialogHeader><DialogTitle>{editing ? 'Editar Deuda' : 'Nueva Deuda'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label>Fecha *</Label><Input type="date" value={form.debt_date} onChange={e => setForm({ ...form, debt_date: e.target.value })} /></div>
+            <div><Label>Fecha estimada de pago *</Label><Input type="date" value={form.debt_date} onChange={e => setForm({ ...form, debt_date: e.target.value })} /></div>
             <div><Label>Beneficiario (a quién le debo) *</Label><CreatableCombobox value={form.beneficiary} onChange={v => setForm({ ...form, beneficiary: v })} options={beneficiaryOptions} placeholder="Escribir o seleccionar beneficiario..." /></div>
             <div><Label>Descripción *</Label><CreatableCombobox value={form.description} onChange={v => setForm({ ...form, description: v })} options={descriptionOptions} placeholder="Escribir o seleccionar concepto..." /></div>
             <div className="grid grid-cols-2 gap-4">
