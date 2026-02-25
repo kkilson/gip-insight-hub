@@ -6,6 +6,8 @@ import { IncomeTab } from '@/components/finances/IncomeTab';
 import { ExpensesTab } from '@/components/finances/ExpensesTab';
 import { InvoicesTab } from '@/components/finances/InvoicesTab';
 import { ExchangeRatesTab } from '@/components/finances/ExchangeRatesTab';
+import { DebtsTab } from '@/components/finances/DebtsTab';
+import { LoansTab } from '@/components/finances/LoansTab';
 
 export default function Finances() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -15,7 +17,7 @@ export default function Finances() {
       <div className="p-6 pb-0 shrink-0">
         <h1 className="text-2xl font-bold">Finanzas</h1>
         <p className="text-muted-foreground">
-          Gestión financiera: presupuestos, ingresos, egresos y facturación
+          Gestión financiera: presupuestos, ingresos, egresos, deudas y préstamos
         </p>
       </div>
 
@@ -26,6 +28,8 @@ export default function Finances() {
           <TabsTrigger value="income">Ingresos</TabsTrigger>
           <TabsTrigger value="expenses">Egresos</TabsTrigger>
           <TabsTrigger value="invoices">Facturación</TabsTrigger>
+          <TabsTrigger value="debts">Deudas</TabsTrigger>
+          <TabsTrigger value="loans">Préstamos</TabsTrigger>
           <TabsTrigger value="rates">Tasas de Cambio</TabsTrigger>
         </TabsList>
 
@@ -35,6 +39,8 @@ export default function Finances() {
           <TabsContent value="income" className="mt-0"><IncomeTab /></TabsContent>
           <TabsContent value="expenses" className="mt-0"><ExpensesTab /></TabsContent>
           <TabsContent value="invoices" className="mt-0"><InvoicesTab /></TabsContent>
+          <TabsContent value="debts" className="mt-0"><DebtsTab /></TabsContent>
+          <TabsContent value="loans" className="mt-0"><LoansTab /></TabsContent>
           <TabsContent value="rates" className="mt-0"><ExchangeRatesTab /></TabsContent>
         </div>
       </Tabs>

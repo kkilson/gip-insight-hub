@@ -654,6 +654,54 @@ export type Database = {
         }
         Relationships: []
       }
+      finance_debts: {
+        Row: {
+          amount_usd: number
+          amount_ves: number
+          beneficiary: string
+          created_at: string
+          created_by: string | null
+          debt_date: string
+          description: string
+          id: string
+          is_paid: boolean
+          month: string
+          notes: string | null
+          paid_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_usd?: number
+          amount_ves?: number
+          beneficiary: string
+          created_at?: string
+          created_by?: string | null
+          debt_date: string
+          description: string
+          id?: string
+          is_paid?: boolean
+          month: string
+          notes?: string | null
+          paid_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_usd?: number
+          amount_ves?: number
+          beneficiary?: string
+          created_at?: string
+          created_by?: string | null
+          debt_date?: string
+          description?: string
+          id?: string
+          is_paid?: boolean
+          month?: string
+          notes?: string | null
+          paid_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       finance_expenses: {
         Row: {
           amount_usd: number
@@ -805,6 +853,54 @@ export type Database = {
           notes?: string | null
           total_usd?: number
           total_ves?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      finance_loans: {
+        Row: {
+          amount_usd: number
+          amount_ves: number
+          beneficiary: string
+          collected_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          is_collected: boolean
+          loan_date: string
+          month: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_usd?: number
+          amount_ves?: number
+          beneficiary: string
+          collected_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          id?: string
+          is_collected?: boolean
+          loan_date: string
+          month: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_usd?: number
+          amount_ves?: number
+          beneficiary?: string
+          collected_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          is_collected?: boolean
+          loan_date?: string
+          month?: string
+          notes?: string | null
           updated_at?: string
         }
         Relationships: []
