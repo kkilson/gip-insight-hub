@@ -70,7 +70,6 @@ export function useToggleProductSelection() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ productId, opportunityId, selected }: { productId: string; opportunityId: string; selected: boolean }) => {
-      // If selecting, deselect all others first
       if (selected) {
         await supabase
           .from('sales_opportunity_products')
@@ -83,10 +82,31 @@ export function useToggleProductSelection() {
         .eq('id', productId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onMutate: async ({ productId, opportunityId, selected }) => {
+      await qc.cancelQueries({ queryKey: ['sales-opportunities'] });
+      const prev = qc.getQueryData(['sales-opportunities']);
+      qc.setQueryData(['sales-opportunities'], (old: SalesOpportunity[] | undefined) => {
+        if (!old) return old;
+        return old.map(opp => {
+          if (opp.id !== opportunityId) return opp;
+          return {
+            ...opp,
+            products: (opp.products ?? []).map(p => ({
+              ...p,
+              is_selected: p.id === productId ? selected : (selected ? false : p.is_selected),
+            })),
+          };
+        });
+      });
+      return { prev };
+    },
+    onError: (e: Error, _vars, context) => {
+      if (context?.prev) qc.setQueryData(['sales-opportunities'], context.prev);
+      toast.error(e.message);
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ['sales-opportunities'] });
     },
-    onError: (e: Error) => toast.error(e.message),
   });
 }
 
