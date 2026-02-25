@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, Trash2, Edit2, DollarSign, TrendingUp, Send, MessageSquare } from 'lucide-react';
+import { Plus, Trash2, Edit2, DollarSign, TrendingUp, Send, MessageSquare, Receipt, TrendingDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -22,6 +22,7 @@ import {
   useDeleteOpportunityProduct,
 } from '@/hooks/useSales';
 import { useSalesNotes, useAddSalesNote, useDeleteSalesNote } from '@/hooks/useSalesNotes';
+import { useSalesInvestments, useAddSalesInvestment, useDeleteSalesInvestment } from '@/hooks/useSalesInvestments';
 import { getInstallmentDivisor } from '@/lib/premiumCalculations';
 
 interface Props {
@@ -58,6 +59,13 @@ export function OpportunityDetailDialog({ open, onOpenChange, opportunity }: Pro
   const addNote = useAddSalesNote();
   const deleteNote = useDeleteSalesNote();
   const [noteText, setNoteText] = useState('');
+
+  // Investments
+  const { data: investments = [] } = useSalesInvestments(opportunity?.id ?? null);
+  const addInvestment = useAddSalesInvestment();
+  const deleteInvestment = useDeleteSalesInvestment();
+  const [showInvForm, setShowInvForm] = useState(false);
+  const [invForm, setInvForm] = useState({ description: '', amount: '', investment_date: new Date().toISOString().slice(0, 10) });
 
   if (!opportunity) return null;
 
@@ -106,6 +114,22 @@ export function OpportunityDetailDialog({ open, onOpenChange, opportunity }: Pro
     });
   };
 
+  const handleAddInvestment = () => {
+    const amount = parseFloat(invForm.amount);
+    if (!invForm.description.trim() || isNaN(amount) || amount <= 0) return;
+    addInvestment.mutate({
+      opportunityId: opportunity.id,
+      description: invForm.description.trim(),
+      amount,
+      investment_date: invForm.investment_date,
+    }, {
+      onSuccess: () => {
+        setInvForm({ description: '', amount: '', investment_date: new Date().toISOString().slice(0, 10) });
+        setShowInvForm(false);
+      },
+    });
+  };
+
   const oppProducts = opportunity.products ?? [];
 
   const calcCommission = (p: SalesOpportunityProduct) => {
@@ -117,6 +141,8 @@ export function OpportunityDetailDialog({ open, onOpenChange, opportunity }: Pro
 
   const totalPremium = oppProducts.reduce((s, p) => s + p.annual_premium, 0);
   const totalCommission = oppProducts.reduce((s, p) => s + calcCommission(p).annualCommission, 0);
+  const totalInvested = investments.reduce((s, inv) => s + inv.amount, 0);
+  const netProfit = totalCommission - totalInvested;
 
   const fmt = (n: number) =>
     new Intl.NumberFormat('es-EC', { style: 'currency', currency: 'USD' }).format(n);
@@ -144,28 +170,50 @@ export function OpportunityDetailDialog({ open, onOpenChange, opportunity }: Pro
             </div>
 
             {/* Summary cards */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Card>
                 <CardHeader className="pb-1 pt-3 px-4">
                   <CardTitle className="text-xs font-medium flex items-center gap-1.5">
-                    <DollarSign className="h-3.5 w-3.5" /> Prima Total Anual
+                    <DollarSign className="h-3.5 w-3.5" /> Prima Anual
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="px-4 pb-3">
-                  <p className="text-xl font-bold">{fmt(totalPremium)}</p>
+                  <p className="text-lg font-bold">{fmt(totalPremium)}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="pb-1 pt-3 px-4">
                   <CardTitle className="text-xs font-medium flex items-center gap-1.5">
-                    <TrendingUp className="h-3.5 w-3.5" /> Comisión Total Anual
+                    <TrendingUp className="h-3.5 w-3.5" /> Comisión Anual
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="px-4 pb-3">
-                  <p className="text-xl font-bold text-green-600">{fmt(totalCommission)}</p>
-                  {totalPremium > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      {((totalCommission / totalPremium) * 100).toFixed(1)}% promedio
+                  <p className="text-lg font-bold text-green-600">{fmt(totalCommission)}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-1 pt-3 px-4">
+                  <CardTitle className="text-xs font-medium flex items-center gap-1.5">
+                    <TrendingDown className="h-3.5 w-3.5" /> Inversión Total
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-3">
+                  <p className="text-lg font-bold text-orange-500">{fmt(totalInvested)}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-1 pt-3 px-4">
+                  <CardTitle className="text-xs font-medium flex items-center gap-1.5">
+                    <Receipt className="h-3.5 w-3.5" /> Ganancia Neta
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-3">
+                  <p className={`text-lg font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                    {fmt(netProfit)}
+                  </p>
+                  {totalCommission > 0 && (
+                    <p className="text-[10px] text-muted-foreground">
+                      ROI: {((netProfit / (totalInvested || 1)) * 100).toFixed(0)}%
                     </p>
                   )}
                 </CardContent>
@@ -296,6 +344,83 @@ export function OpportunityDetailDialog({ open, onOpenChange, opportunity }: Pro
               ) : (
                 <p className="text-xs text-muted-foreground text-center py-3">
                   No hay productos cotizados aún. Agrega uno para calcular comisiones.
+                </p>
+              )}
+            </div>
+
+            {/* Investments */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold text-sm flex items-center gap-1.5">
+                  <TrendingDown className="h-4 w-4" /> Inversiones Realizadas
+                </h3>
+                <Button size="sm" variant="outline" onClick={() => setShowInvForm(v => !v)}>
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Registrar
+                </Button>
+              </div>
+
+              {showInvForm && (
+                <Card className="mb-3">
+                  <CardContent className="pt-3 pb-3 space-y-2">
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <Label className="text-xs">Fecha</Label>
+                        <Input className="h-8 text-xs" type="date" value={invForm.investment_date} onChange={e => setInvForm(f => ({ ...f, investment_date: e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Monto (USD)</Label>
+                        <Input className="h-8 text-xs" type="number" step="0.01" placeholder="0.00" value={invForm.amount} onChange={e => setInvForm(f => ({ ...f, amount: e.target.value }))} />
+                      </div>
+                      <div className="flex items-end gap-1">
+                        <Button size="sm" className="h-8 text-xs" onClick={handleAddInvestment} disabled={addInvestment.isPending}>Agregar</Button>
+                        <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setShowInvForm(false)}>Cancelar</Button>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Descripción</Label>
+                      <Input className="h-8 text-xs" placeholder="Ej: Almuerzo con cliente, transporte..." value={invForm.description} onChange={e => setInvForm(f => ({ ...f, description: e.target.value }))} />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {investments.length > 0 ? (
+                <div className="border rounded-md overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs">Fecha</TableHead>
+                        <TableHead className="text-xs">Descripción</TableHead>
+                        <TableHead className="text-xs text-right">Monto</TableHead>
+                        <TableHead className="w-10" />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {investments.map(inv => (
+                        <TableRow key={inv.id}>
+                          <TableCell className="text-xs py-2">{format(new Date(inv.investment_date), "dd MMM yyyy", { locale: es })}</TableCell>
+                          <TableCell className="text-xs py-2">{inv.description}</TableCell>
+                          <TableCell className="text-xs text-right py-2 font-medium text-orange-500">{fmt(inv.amount)}</TableCell>
+                          <TableCell className="py-2">
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => deleteInvestment.mutate({ id: inv.id, opportunityId: opportunity.id })}>
+                              <Trash2 className="h-3 w-3 text-destructive" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                    <TableFooter>
+                      <TableRow>
+                        <TableCell colSpan={2} className="font-semibold text-xs">Total Invertido</TableCell>
+                        <TableCell className="text-right font-semibold text-xs text-orange-500">{fmt(totalInvested)}</TableCell>
+                        <TableCell />
+                      </TableRow>
+                    </TableFooter>
+                  </Table>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground text-center py-2">
+                  Sin inversiones registradas. Registra gastos asociados a esta oportunidad.
                 </p>
               )}
             </div>
