@@ -26,10 +26,12 @@ export function SalesTableView({ opportunities, onViewDetail, onEdit }: Props) {
   const updateStage = useUpdateStage();
   const deleteOpp = useDeleteOpportunity();
 
-  const totalPremium = (opp: SalesOpportunity) =>
-    (opp.products ?? []).reduce((s, p) => s + p.annual_premium, 0);
-  const totalCommission = (opp: SalesOpportunity) =>
-    (opp.products ?? []).reduce((s, p) => s + p.annual_premium * (p.commission_rate / 100), 0);
+  const selectedPremium = (opp: SalesOpportunity) =>
+    (opp.products ?? []).find(p => p.is_selected)?.annual_premium ?? 0;
+  const selectedCommission = (opp: SalesOpportunity) => {
+    const sel = (opp.products ?? []).find(p => p.is_selected);
+    return sel ? sel.annual_premium * (sel.commission_rate / 100) : 0;
+  };
 
   return (
     <Table>
@@ -81,8 +83,8 @@ export function SalesTableView({ opportunities, onViewDetail, onEdit }: Props) {
                   </SelectContent>
                 </Select>
               </TableCell>
-              <TableCell className="text-right">{fmt(totalPremium(opp))}</TableCell>
-              <TableCell className="text-right font-medium text-green-600">{fmt(totalCommission(opp))}</TableCell>
+              <TableCell className="text-right">{fmt(selectedPremium(opp))}</TableCell>
+              <TableCell className="text-right font-medium text-green-600">{fmt(selectedCommission(opp))}</TableCell>
               <TableCell>{opp.expected_close_date ?? '-'}</TableCell>
               <TableCell>
                 <Badge variant="secondary">{(opp.products ?? []).length}</Badge>

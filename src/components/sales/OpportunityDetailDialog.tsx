@@ -20,6 +20,7 @@ import {
   useInsurersAndProducts,
   useSaveOpportunityProduct,
   useDeleteOpportunityProduct,
+  useToggleProductSelection,
 } from '@/hooks/useSales';
 import { useSalesNotes, useAddSalesNote, useDeleteSalesNote } from '@/hooks/useSalesNotes';
 import { useSalesInvestments, useAddSalesInvestment, useDeleteSalesInvestment } from '@/hooks/useSalesInvestments';
@@ -44,6 +45,7 @@ export function OpportunityDetailDialog({ open, onOpenChange, opportunity }: Pro
   const { insurers, products } = useInsurersAndProducts();
   const saveProd = useSaveOpportunityProduct();
   const deleteProd = useDeleteOpportunityProduct();
+  const toggleSelection = useToggleProductSelection();
   const [showForm, setShowForm] = useState(false);
   const [editingProd, setEditingProd] = useState<SalesOpportunityProduct | null>(null);
   const [prodForm, setProdForm] = useState({
@@ -139,10 +141,11 @@ export function OpportunityDetailDialog({ open, onOpenChange, opportunity }: Pro
     return { installment, commissionPerInstallment, annualCommission };
   };
 
-  const totalPremium = oppProducts.reduce((s, p) => s + p.annual_premium, 0);
-  const totalCommission = oppProducts.reduce((s, p) => s + calcCommission(p).annualCommission, 0);
+  const selectedProduct = oppProducts.find(p => p.is_selected);
+  const selectedPremium = selectedProduct ? selectedProduct.annual_premium : 0;
+  const selectedCommission = selectedProduct ? calcCommission(selectedProduct).annualCommission : 0;
   const totalInvested = investments.reduce((s, inv) => s + inv.amount, 0);
-  const netProfit = totalCommission - totalInvested;
+  const netProfit = selectedCommission - totalInvested;
 
   const fmt = (n: number) =>
     new Intl.NumberFormat('es-EC', { style: 'currency', currency: 'USD' }).format(n);
@@ -178,7 +181,10 @@ export function OpportunityDetailDialog({ open, onOpenChange, opportunity }: Pro
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="px-4 pb-3">
-                  <p className="text-lg font-bold">{fmt(totalPremium)}</p>
+                  <p className="text-lg font-bold">{fmt(selectedPremium)}</p>
+                  {!selectedProduct && oppProducts.length > 0 && (
+                    <p className="text-[10px] text-muted-foreground">Selecciona un producto</p>
+                  )}
                 </CardContent>
               </Card>
               <Card>
@@ -188,7 +194,7 @@ export function OpportunityDetailDialog({ open, onOpenChange, opportunity }: Pro
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="px-4 pb-3">
-                  <p className="text-lg font-bold text-green-600">{fmt(totalCommission)}</p>
+                  <p className="text-lg font-bold text-green-600">{fmt(selectedCommission)}</p>
                 </CardContent>
               </Card>
               <Card>
@@ -211,7 +217,7 @@ export function OpportunityDetailDialog({ open, onOpenChange, opportunity }: Pro
                   <p className={`text-lg font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                     {fmt(netProfit)}
                   </p>
-                  {totalCommission > 0 && (
+                  {selectedCommission > 0 && (
                     <p className="text-[10px] text-muted-foreground">
                       ROI: {((netProfit / (totalInvested || 1)) * 100).toFixed(0)}%
                     </p>
@@ -288,6 +294,7 @@ export function OpportunityDetailDialog({ open, onOpenChange, opportunity }: Pro
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-10 text-xs text-center">Elegido</TableHead>
                         <TableHead className="text-xs">Aseguradora</TableHead>
                         <TableHead className="text-xs">Producto</TableHead>
                         <TableHead className="text-xs text-right">Prima Anual</TableHead>
@@ -303,7 +310,20 @@ export function OpportunityDetailDialog({ open, onOpenChange, opportunity }: Pro
                         const calc = calcCommission(p);
                         const freq = FREQUENCIES.find(f => f.value === p.payment_frequency);
                         return (
-                          <TableRow key={p.id}>
+                          <TableRow key={p.id} className={p.is_selected ? 'bg-primary/5' : ''}>
+                            <TableCell className="text-center py-2">
+                              <input
+                                type="radio"
+                                name="selected-product"
+                                checked={p.is_selected}
+                                onChange={() => toggleSelection.mutate({
+                                  productId: p.id,
+                                  opportunityId: opportunity.id,
+                                  selected: !p.is_selected,
+                                })}
+                                className="h-3.5 w-3.5 accent-primary cursor-pointer"
+                              />
+                            </TableCell>
                             <TableCell className="text-xs py-2">{p.insurer?.name ?? '-'}</TableCell>
                             <TableCell className="text-xs py-2">
                               {p.product?.name ?? '-'}
@@ -328,17 +348,6 @@ export function OpportunityDetailDialog({ open, onOpenChange, opportunity }: Pro
                         );
                       })}
                     </TableBody>
-                    <TableFooter>
-                      <TableRow>
-                        <TableCell colSpan={2} className="font-semibold text-xs">Totales</TableCell>
-                        <TableCell className="text-right font-semibold text-xs">{fmt(totalPremium)}</TableCell>
-                        <TableCell />
-                        <TableCell />
-                        <TableCell className="text-right font-semibold text-xs text-green-600">{fmt(totalCommission)}</TableCell>
-                        <TableCell />
-                        <TableCell />
-                      </TableRow>
-                    </TableFooter>
                   </Table>
                 </div>
               ) : (

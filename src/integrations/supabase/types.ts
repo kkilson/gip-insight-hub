@@ -1546,6 +1546,7 @@ export type Database = {
           created_at: string
           id: string
           insurer_id: string | null
+          is_selected: boolean
           notes: string | null
           opportunity_id: string
           payment_frequency: string
@@ -1558,6 +1559,7 @@ export type Database = {
           created_at?: string
           id?: string
           insurer_id?: string | null
+          is_selected?: boolean
           notes?: string | null
           opportunity_id: string
           payment_frequency?: string
@@ -1570,6 +1572,7 @@ export type Database = {
           created_at?: string
           id?: string
           insurer_id?: string | null
+          is_selected?: boolean
           notes?: string | null
           opportunity_id?: string
           payment_frequency?: string
