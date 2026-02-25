@@ -23,11 +23,14 @@ const formatVES = (n: number) => `Bs. ${n.toLocaleString('es-VE', { minimumFract
 
 export function DebtsTab() {
   const [monthFilter, setMonthFilter] = useState(format(new Date(), 'yyyy-MM'));
+  const [showPendingOnly, setShowPendingOnly] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<FinanceDebt | null>(null);
 
-  const { data: debts, isLoading } = useFinanceDebts(monthFilter);
+  const { data: rawDebts, isLoading } = useFinanceDebts(showPendingOnly ? undefined : monthFilter);
   const { data: allDebts } = useFinanceDebts();
+
+  const debts = showPendingOnly ? rawDebts?.filter(d => !d.is_paid) : rawDebts;
   const saveDebt = useSaveDebt();
   const deleteDebt = useDeleteDebt();
   const bulk = useBulkSelection(debts);
@@ -55,7 +58,12 @@ export function DebtsTab() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-4 justify-between">
-        <Input type="month" value={monthFilter} onChange={e => setMonthFilter(e.target.value)} className="w-[200px]" />
+        <div className="flex items-center gap-2">
+          <Input type="month" value={monthFilter} onChange={e => { setMonthFilter(e.target.value); setShowPendingOnly(false); }} className="w-[200px]" disabled={showPendingOnly} />
+          <Button variant={showPendingOnly ? 'default' : 'outline'} onClick={() => setShowPendingOnly(!showPendingOnly)} className="whitespace-nowrap">
+            {showPendingOnly ? 'Ver por mes' : 'Todas pendientes'}
+          </Button>
+        </div>
         <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" />Nueva Deuda</Button>
       </div>
 
@@ -67,7 +75,7 @@ export function DebtsTab() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Deudas / Compromisos - {monthFilter}</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Deudas / Compromisos {showPendingOnly ? '- Todas pendientes' : `- ${monthFilter}`}</CardTitle></CardHeader>
         <CardContent>
           {isLoading ? <Skeleton className="h-32 w-full" /> : debts?.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">No hay deudas registradas</div>
