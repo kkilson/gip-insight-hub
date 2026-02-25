@@ -66,6 +66,8 @@ export function BirthdaySendDialog({
         clientId: birthday.clientId,
         channels,
         year: new Date().getFullYear(),
+        clientName: birthday.fullName,
+        clientEmail: birthday.email || undefined,
       },
       {
         onSuccess: () => {
