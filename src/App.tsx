@@ -20,6 +20,7 @@ import AuditLogs from "./pages/AuditLogs";
 import Advisors from "./pages/Advisors";
 import Finances from "./pages/Finances";
 import Sales from "./pages/Sales";
+import Partnerships from "./pages/Partnerships";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -74,7 +75,7 @@ const App = () => (
             <Route path="/tasks" element={<ProtectedLayout><PlaceholderPage title="Tareas" description="Gestiona las tareas internas del equipo" /></ProtectedLayout>} />
             <Route path="/tutorials" element={<ProtectedLayout><PlaceholderPage title="Tutoriales" description="Guías y procesos del sistema" /></ProtectedLayout>} />
             <Route path="/sales" element={<ProtectedLayout><Sales /></ProtectedLayout>} />
-            <Route path="/partnerships" element={<ProtectedLayout><PlaceholderPage title="Alianzas" description="Gestiona alianzas y cupones" /></ProtectedLayout>} />
+            <Route path="/partnerships" element={<ProtectedLayout><Partnerships /></ProtectedLayout>} />
             <Route path="/advisors" element={
               <ProtectedRoute requiredRoles={['acceso_total']}>
                 <AppLayout><Advisors /></AppLayout>
