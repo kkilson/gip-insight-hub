@@ -1003,6 +1003,39 @@ export type Database = {
         }
         Relationships: []
       }
+      payroll_employees: {
+        Row: {
+          base_salary_usd: number
+          created_at: string
+          created_by: string | null
+          full_name: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          base_salary_usd?: number
+          created_at?: string
+          created_by?: string | null
+          full_name: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          base_salary_usd?: number
+          created_at?: string
+          created_by?: string | null
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       policies: {
         Row: {
           client_id: string
