@@ -1378,6 +1378,158 @@ export type Database = {
           },
         ]
       }
+      sales_activity_log: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          id: string
+          new_stage: Database["public"]["Enums"]["sales_stage"]
+          notes: string | null
+          opportunity_id: string
+          previous_stage: Database["public"]["Enums"]["sales_stage"] | null
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          new_stage: Database["public"]["Enums"]["sales_stage"]
+          notes?: string | null
+          opportunity_id: string
+          previous_stage?: Database["public"]["Enums"]["sales_stage"] | null
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          new_stage?: Database["public"]["Enums"]["sales_stage"]
+          notes?: string | null
+          opportunity_id?: string
+          previous_stage?: Database["public"]["Enums"]["sales_stage"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_activity_log_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "sales_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_opportunities: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          created_by: string | null
+          expected_close_date: string | null
+          id: string
+          notes: string | null
+          prospect_company: string | null
+          prospect_email: string | null
+          prospect_name: string
+          prospect_phone: string | null
+          stage: Database["public"]["Enums"]["sales_stage"]
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expected_close_date?: string | null
+          id?: string
+          notes?: string | null
+          prospect_company?: string | null
+          prospect_email?: string | null
+          prospect_name: string
+          prospect_phone?: string | null
+          stage?: Database["public"]["Enums"]["sales_stage"]
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expected_close_date?: string | null
+          id?: string
+          notes?: string | null
+          prospect_company?: string | null
+          prospect_email?: string | null
+          prospect_name?: string
+          prospect_phone?: string | null
+          stage?: Database["public"]["Enums"]["sales_stage"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_opportunities_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_opportunity_products: {
+        Row: {
+          annual_premium: number
+          commission_rate: number
+          created_at: string
+          id: string
+          insurer_id: string | null
+          notes: string | null
+          opportunity_id: string
+          payment_frequency: string
+          product_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          annual_premium?: number
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          insurer_id?: string | null
+          notes?: string | null
+          opportunity_id: string
+          payment_frequency?: string
+          product_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          annual_premium?: number
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          insurer_id?: string | null
+          notes?: string | null
+          opportunity_id?: string
+          payment_frequency?: string
+          product_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_opportunity_products_insurer_id_fkey"
+            columns: ["insurer_id"]
+            isOneToOne: false
+            referencedRelation: "insurers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_opportunity_products_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "sales_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_opportunity_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usage_types: {
         Row: {
           created_at: string
@@ -1508,6 +1660,18 @@ export type Database = {
         | "enviada"
         | "error"
         | "completada"
+      sales_stage:
+        | "lead_identificado"
+        | "reunion_inicial"
+        | "propuesta"
+        | "envio_propuesta"
+        | "seguimiento_1"
+        | "seguimiento_2"
+        | "seguimiento_3"
+        | "propuesta_aceptada"
+        | "ganado"
+        | "perdido"
+        | "postergado"
       transaction_type:
         | "deposito"
         | "retiro"
@@ -1710,6 +1874,19 @@ export const Constants = {
         "enviada",
         "error",
         "completada",
+      ],
+      sales_stage: [
+        "lead_identificado",
+        "reunion_inicial",
+        "propuesta",
+        "envio_propuesta",
+        "seguimiento_1",
+        "seguimiento_2",
+        "seguimiento_3",
+        "propuesta_aceptada",
+        "ganado",
+        "perdido",
+        "postergado",
       ],
       transaction_type: [
         "deposito",
