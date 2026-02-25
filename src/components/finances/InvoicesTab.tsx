@@ -22,7 +22,7 @@ const formatUSD = (n: number) => `$${n.toFixed(2)}`;
 const formatVES = (n: number) => `Bs. ${n.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
 const calcISLR = (total: number) => total / 100;
 const calcTaxUnits = (islr: number) => islr * 5;
-const calcNet = (total: number) => total - calcISLR(total);
+const calcNet = (total: number) => total - calcTaxUnits(calcISLR(total));
 
 export function InvoicesTab() {
   const [monthFilter, setMonthFilter] = useState(format(new Date(), 'yyyy-MM'));
