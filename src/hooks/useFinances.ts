@@ -114,6 +114,7 @@ export interface FinanceExpense {
   exchange_rate: number | null;
   is_paid: boolean;
   paid_at: string | null;
+  beneficiary: string | null;
   notes: string | null;
   created_by: string | null;
   created_at: string;
@@ -572,7 +573,7 @@ export function useSaveExpense() {
   const { toast } = useToast();
   
   return useMutation({
-    mutationFn: async (expense: { id?: string; expense_date: string; month: string; description: string; amount_usd: number; amount_ves: number; exchange_rate?: number | null; is_paid?: boolean; notes?: string | null }) => {
+    mutationFn: async (expense: { id?: string; expense_date: string; month: string; description: string; amount_usd: number; amount_ves: number; exchange_rate?: number | null; is_paid?: boolean; beneficiary?: string | null; notes?: string | null }) => {
       if (expense.id) {
         const { id, ...rest } = expense;
         const { data, error } = await supabase.from('finance_expenses').update(rest).eq('id', id).select().single();

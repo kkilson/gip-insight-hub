@@ -23,7 +23,7 @@ export interface FieldDef {
   required: boolean;
 }
 
-export type FinanceModuleType = 'income' | 'expenses' | 'invoices' | 'receivables' | 'payables' | 'exchange_rates';
+export type FinanceModuleType = 'income' | 'expenses' | 'invoices' | 'exchange_rates';
 
 // ========================
 // FIELD DEFINITIONS PER MODULE
@@ -40,6 +40,7 @@ export const INCOME_FIELDS: FieldDef[] = [
 
 export const EXPENSE_FIELDS: FieldDef[] = [
   { value: 'expense_date', label: 'Fecha', required: true },
+  { value: 'beneficiary', label: 'Beneficiario', required: false },
   { value: 'description', label: 'Descripción', required: true },
   { value: 'amount_usd', label: 'Monto USD', required: false },
   { value: 'amount_ves', label: 'Monto VES', required: false },
@@ -89,8 +90,6 @@ export function getFieldsForModule(module: FinanceModuleType): FieldDef[] {
     case 'income': return INCOME_FIELDS;
     case 'expenses': return EXPENSE_FIELDS;
     case 'invoices': return INVOICE_FIELDS;
-    case 'receivables': return RECEIVABLE_FIELDS;
-    case 'payables': return PAYABLE_FIELDS;
     case 'exchange_rates': return EXCHANGE_RATE_FIELDS;
   }
 }
@@ -100,8 +99,6 @@ export function getModuleLabel(module: FinanceModuleType): string {
     case 'income': return 'Ingresos';
     case 'expenses': return 'Egresos';
     case 'invoices': return 'Facturas';
-    case 'receivables': return 'Cuentas por Cobrar';
-    case 'payables': return 'Cuentas por Pagar';
     case 'exchange_rates': return 'Tasas de Cambio';
   }
 }
@@ -115,6 +112,7 @@ const SYNONYM_MAP: Record<string, string[]> = {
   expense_date: ['fecha', 'date', 'fecha_egreso', 'fecha_gasto'],
   invoice_date: ['fecha', 'date', 'fecha_factura'],
   description: ['descripcion', 'concepto', 'detalle', 'description'],
+  beneficiary: ['beneficiario', 'proveedor', 'a_quien', 'pagado_a', 'payee'],
   amount_usd: ['monto_usd', 'usd', 'dolares', 'amount_usd', 'monto usd', 'dólares'],
   amount_ves: ['monto_ves', 'ves', 'bolivares', 'amount_ves', 'monto ves', 'bolívares', 'bs'],
   bank_name: ['banco', 'bank', 'entidad'],

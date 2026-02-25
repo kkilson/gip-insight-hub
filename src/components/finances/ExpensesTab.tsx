@@ -36,14 +36,16 @@ export function ExpensesTab() {
 
   const descriptionOptions = [...new Set(allExpenses?.map(e => e.description) || [])].sort();
 
-  const [form, setForm] = useState({ expense_date: '', description: '', amount_usd: 0, amount_ves: 0, exchange_rate: null as number | null, is_paid: true, notes: '' });
+  const [form, setForm] = useState({ expense_date: '', description: '', beneficiary: '', amount_usd: 0, amount_ves: 0, exchange_rate: null as number | null, is_paid: true, notes: '' });
 
-  const openNew = () => { setEditing(null); setForm({ expense_date: format(new Date(), 'yyyy-MM-dd'), description: '', amount_usd: 0, amount_ves: 0, exchange_rate: null, is_paid: true, notes: '' }); setFormOpen(true); };
-  const openEdit = (item: FinanceExpense) => { setEditing(item); setForm({ expense_date: item.expense_date, description: item.description, amount_usd: item.amount_usd, amount_ves: item.amount_ves, exchange_rate: item.exchange_rate, is_paid: item.is_paid, notes: item.notes || '' }); setFormOpen(true); };
+  const beneficiaryOptions = [...new Set(allExpenses?.map(e => e.beneficiary).filter(Boolean) as string[] || [])].sort();
+
+  const openNew = () => { setEditing(null); setForm({ expense_date: format(new Date(), 'yyyy-MM-dd'), description: '', beneficiary: '', amount_usd: 0, amount_ves: 0, exchange_rate: null, is_paid: true, notes: '' }); setFormOpen(true); };
+  const openEdit = (item: FinanceExpense) => { setEditing(item); setForm({ expense_date: item.expense_date, description: item.description, beneficiary: item.beneficiary || '', amount_usd: item.amount_usd, amount_ves: item.amount_ves, exchange_rate: item.exchange_rate, is_paid: item.is_paid, notes: item.notes || '' }); setFormOpen(true); };
 
   const handleSave = async () => {
     const month = form.expense_date.substring(0, 7);
-    await saveExpense.mutateAsync({ ...(editing ? { id: editing.id } : {}), expense_date: form.expense_date, month, description: form.description, amount_usd: form.amount_usd, amount_ves: form.amount_ves, exchange_rate: form.exchange_rate, is_paid: form.is_paid, notes: form.notes || null });
+    await saveExpense.mutateAsync({ ...(editing ? { id: editing.id } : {}), expense_date: form.expense_date, month, description: form.description, beneficiary: form.beneficiary || null, amount_usd: form.amount_usd, amount_ves: form.amount_ves, exchange_rate: form.exchange_rate, is_paid: form.is_paid, notes: form.notes || null });
     setFormOpen(false);
   };
 
@@ -75,7 +77,7 @@ export function ExpensesTab() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[40px]"><Checkbox checked={bulk.isAllSelected} onCheckedChange={bulk.toggleAll} /></TableHead>
-                  <TableHead>Fecha</TableHead><TableHead>Descripción</TableHead>
+                  <TableHead>Fecha</TableHead><TableHead>Beneficiario</TableHead><TableHead>Descripción</TableHead>
                   <TableHead className="text-right">USD</TableHead><TableHead className="text-right">VES</TableHead>
                   <TableHead>Pagado</TableHead><TableHead className="w-[100px]">Acciones</TableHead>
                 </TableRow>
@@ -85,6 +87,7 @@ export function ExpensesTab() {
                   <TableRow key={item.id} className={bulk.isSelected(item.id) ? 'bg-muted/50' : ''}>
                     <TableCell><Checkbox checked={bulk.isSelected(item.id)} onCheckedChange={() => bulk.toggle(item.id)} /></TableCell>
                     <TableCell>{format(new Date(item.expense_date), 'dd/MM/yyyy')}</TableCell>
+                    <TableCell>{item.beneficiary || '-'}</TableCell>
                     <TableCell>{item.description}</TableCell>
                     <TableCell className="text-right font-mono">{formatUSD(item.amount_usd)}</TableCell>
                     <TableCell className="text-right font-mono">{formatVES(item.amount_ves)}</TableCell>
@@ -124,6 +127,7 @@ export function ExpensesTab() {
           <DialogHeader><DialogTitle>{editing ? 'Editar Egreso' : 'Nuevo Egreso'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div><Label>Fecha *</Label><Input type="date" value={form.expense_date} onChange={e => setForm({ ...form, expense_date: e.target.value })} /></div>
+            <div><Label>Beneficiario (a quién se le pagó)</Label><CreatableCombobox value={form.beneficiary} onChange={v => setForm({ ...form, beneficiary: v })} options={beneficiaryOptions} placeholder="Escribir o seleccionar beneficiario..." /></div>
             <div><Label>Descripción / Concepto *</Label><CreatableCombobox value={form.description} onChange={v => setForm({ ...form, description: v })} options={descriptionOptions} placeholder="Escribir o seleccionar concepto..." /></div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label>Monto USD</Label><Input type="number" step="0.01" value={form.amount_usd || ''} onChange={e => setForm({ ...form, amount_usd: parseFloat(e.target.value) || 0 })} /></div>
