@@ -81,15 +81,20 @@ export function InvoicesTab() {
                     <TableHead>Fecha</TableHead><TableHead>N° Factura</TableHead><TableHead>N° Control</TableHead>
                     <TableHead>Descripción</TableHead><TableHead className="text-right">Total USD</TableHead>
                     <TableHead className="text-right">Total VES</TableHead><TableHead className="text-right">ISLR USD</TableHead>
-                    <TableHead className="text-right">UT</TableHead><TableHead className="text-right">Neto USD</TableHead>
+                    <TableHead className="text-right">ISLR VES</TableHead><TableHead className="text-right">UT USD</TableHead>
+                    <TableHead className="text-right">UT VES</TableHead><TableHead className="text-right">Neto USD</TableHead>
+                    <TableHead className="text-right">Neto VES</TableHead>
                     <TableHead>Cobrada</TableHead><TableHead className="w-[100px]">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {invoices?.map(inv => {
                     const islrUSD = calcISLR(inv.total_usd);
-                    const tu = calcTaxUnits(islrUSD);
+                    const islrVES = calcISLR(inv.total_ves);
+                    const tuUSD = calcTaxUnits(islrUSD);
+                    const tuVES = calcTaxUnits(islrVES);
                     const netUSD = calcNet(inv.total_usd);
+                    const netVES = calcNet(inv.total_ves);
                     return (
                       <TableRow key={inv.id} className={bulk.isSelected(inv.id) ? 'bg-muted/50' : ''}>
                         <TableCell><Checkbox checked={bulk.isSelected(inv.id)} onCheckedChange={() => bulk.toggle(inv.id)} /></TableCell>
@@ -100,8 +105,11 @@ export function InvoicesTab() {
                         <TableCell className="text-right font-mono">{formatUSD(inv.total_usd)}</TableCell>
                         <TableCell className="text-right font-mono">{formatVES(inv.total_ves)}</TableCell>
                         <TableCell className="text-right font-mono text-orange-600">{formatUSD(islrUSD)}</TableCell>
-                        <TableCell className="text-right font-mono">{tu.toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-mono text-orange-600">{formatVES(islrVES)}</TableCell>
+                        <TableCell className="text-right font-mono">{tuUSD.toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-mono">{tuVES.toFixed(2)}</TableCell>
                         <TableCell className="text-right font-mono font-semibold">{formatUSD(netUSD)}</TableCell>
+                        <TableCell className="text-right font-mono font-semibold">{formatVES(netVES)}</TableCell>
                         <TableCell><Badge variant={inv.is_collected ? 'default' : 'secondary'}>{inv.is_collected ? 'Sí' : 'No'}</Badge></TableCell>
                         <TableCell>
                           <div className="flex gap-1">
@@ -149,11 +157,18 @@ export function InvoicesTab() {
               <div><Label>Total USD</Label><Input type="number" step="0.01" value={form.total_usd || ''} onChange={e => setForm({ ...form, total_usd: parseFloat(e.target.value) || 0 })} /></div>
               <div><Label>Total VES</Label><Input type="number" step="0.01" value={form.total_ves || ''} onChange={e => setForm({ ...form, total_ves: parseFloat(e.target.value) || 0 })} /></div>
             </div>
-            {form.total_usd > 0 && (
+            {(form.total_usd > 0 || form.total_ves > 0) && (
               <Card className="bg-muted/50"><CardContent className="pt-4 space-y-1 text-sm">
-                <div className="flex justify-between"><span>Retención ISLR (1%):</span><span className="font-mono">{formatUSD(calcISLR(form.total_usd))}</span></div>
-                <div className="flex justify-between"><span>Unidades Tributarias:</span><span className="font-mono">{calcTaxUnits(calcISLR(form.total_usd)).toFixed(2)}</span></div>
-                <div className="flex justify-between font-semibold"><span>Neto a Recibir:</span><span className="font-mono">{formatUSD(calcNet(form.total_usd))}</span></div>
+                {form.total_usd > 0 && <>
+                  <div className="flex justify-between"><span>ISLR USD (1%):</span><span className="font-mono">{formatUSD(calcISLR(form.total_usd))}</span></div>
+                  <div className="flex justify-between"><span>UT USD:</span><span className="font-mono">{calcTaxUnits(calcISLR(form.total_usd)).toFixed(2)}</span></div>
+                  <div className="flex justify-between font-semibold"><span>Neto USD:</span><span className="font-mono">{formatUSD(calcNet(form.total_usd))}</span></div>
+                </>}
+                {form.total_ves > 0 && <>
+                  <div className="flex justify-between"><span>ISLR VES (1%):</span><span className="font-mono">{formatVES(calcISLR(form.total_ves))}</span></div>
+                  <div className="flex justify-between"><span>UT VES:</span><span className="font-mono">{calcTaxUnits(calcISLR(form.total_ves)).toFixed(2)}</span></div>
+                  <div className="flex justify-between font-semibold"><span>Neto VES:</span><span className="font-mono">{formatVES(calcNet(form.total_ves))}</span></div>
+                </>}
               </CardContent></Card>
             )}
             <div className="flex items-center gap-2"><input type="checkbox" checked={form.is_collected} onChange={e => setForm({ ...form, is_collected: e.target.checked })} /><Label>Cobrada</Label></div>
