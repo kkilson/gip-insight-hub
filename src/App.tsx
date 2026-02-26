@@ -15,6 +15,7 @@ import Clients from "./pages/Clients";
 import Collections from "./pages/Collections";
 import Renewals from "./pages/Renewals";
 import Templates from "./pages/Templates";
+import Tutorials from "./pages/Tutorials";
 import Birthdays from "./pages/Birthdays";
 import AuditLogs from "./pages/AuditLogs";
 import Advisors from "./pages/Advisors";
@@ -73,7 +74,7 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/tasks" element={<ProtectedLayout><PlaceholderPage title="Tareas" description="Gestiona las tareas internas del equipo" /></ProtectedLayout>} />
-            <Route path="/tutorials" element={<ProtectedLayout><PlaceholderPage title="Tutoriales" description="Guías y procesos del sistema" /></ProtectedLayout>} />
+            <Route path="/tutorials" element={<ProtectedLayout><Tutorials /></ProtectedLayout>} />
             <Route path="/sales" element={<ProtectedLayout><Sales /></ProtectedLayout>} />
             <Route path="/partnerships" element={<ProtectedLayout><Partnerships /></ProtectedLayout>} />
             <Route path="/advisors" element={
