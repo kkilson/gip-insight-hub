@@ -54,13 +54,19 @@ export function BreakdownTab() {
     return [batchFilter];
   }, [batchFilter, assignedBatches]);
 
+  const selectedBatchData = useMemo(() => {
+    if (batchFilter !== 'all') return assignedBatches.find(b => b.id === batchFilter);
+    return assignedBatches[0];
+  }, [batchFilter, assignedBatches]);
+  const currencySymbol = selectedBatchData?.currency === 'BS' ? 'Bs.' : '$';
+
   const { data: breakdownData, isLoading } = useQuery({
     queryKey: ['commission-breakdown', batchIds, advisorFilter],
     enabled: batchIds.length > 0,
     queryFn: async () => {
       const { data: entries } = await supabase
         .from('commission_entries')
-        .select('*, insurer:insurers(name), batch:commission_batches(batch_date)')
+        .select('*, insurer:insurers(name), batch:commission_batches(batch_date,currency)')
         .in('batch_id', batchIds);
 
       if (!entries || entries.length === 0) return [];
@@ -202,8 +208,8 @@ export function BreakdownTab() {
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-center">
                   <CardTitle className="text-base">{advisor.advisor_name}</CardTitle>
-                  <span className="text-lg font-bold text-primary">
-                    Total: ${advisor.total.toLocaleString('es', { minimumFractionDigits: 2 })}
+                   <span className="text-lg font-bold text-primary">
+                     Total: {currencySymbol}{advisor.total.toLocaleString('es', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
               </CardHeader>
@@ -241,11 +247,11 @@ export function BreakdownTab() {
                         <TableCell className="text-sm">{e.client_name}</TableCell>
                         <TableCell className="text-sm">{e.insurer_name}</TableCell>
                         <TableCell className="text-sm">{e.plan_type}</TableCell>
-                        <TableCell className="text-sm">${e.premium.toLocaleString('es', { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-sm">{currencySymbol}{e.premium.toLocaleString('es', { minimumFractionDigits: 2 })}</TableCell>
                         <TableCell className="text-sm">{e.commission_rate}%</TableCell>
-                        <TableCell className="text-sm">${e.commission_amount.toLocaleString('es', { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-sm">{currencySymbol}{e.commission_amount.toLocaleString('es', { minimumFractionDigits: 2 })}</TableCell>
                         <TableCell className="text-sm font-medium">{e.advisor_percentage}%</TableCell>
-                        <TableCell className="text-sm font-bold">${e.advisor_amount.toLocaleString('es', { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-sm font-bold">{currencySymbol}{e.advisor_amount.toLocaleString('es', { minimumFractionDigits: 2 })}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
