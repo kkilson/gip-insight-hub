@@ -8,7 +8,9 @@ import { FileDown, Printer, Loader2, Trash2 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useCommissionBatches, useDeleteAssignmentsBulk } from '@/hooks/useCommissions';
+import { useBrokerSettings } from '@/hooks/useBrokerSettings';
 import { BulkActionsBar } from '@/components/ui/BulkActionsBar';
+import { generateBreakdownPdf } from './generateBreakdownPdf';
 import * as XLSX from 'xlsx';
 
 interface BreakdownEntry {
@@ -38,6 +40,7 @@ export function BreakdownTab() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const { data: batches } = useCommissionBatches();
+  const { settings: brokerSettings } = useBrokerSettings();
   const assignedBatches = useMemo(() => batches?.filter(b => b.status === 'asignado') || [], [batches]);
   const deleteAssignments = useDeleteAssignmentsBulk();
 
@@ -166,7 +169,13 @@ export function BreakdownTab() {
     XLSX.writeFile(wb, `desglose_comisiones_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    if (!breakdownData || breakdownData.length === 0) return;
+    // Print each advisor's breakdown as a separate PDF
+    for (const advisor of breakdownData) {
+      generateBreakdownPdf(advisor, currencySymbol, brokerSettings);
+    }
+  };
 
   return (
     <div className="space-y-4">
