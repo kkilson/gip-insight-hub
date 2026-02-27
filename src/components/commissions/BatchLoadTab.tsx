@@ -7,17 +7,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Plus, Upload, Trash2, FileSpreadsheet, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Upload, Trash2, FileSpreadsheet, Loader2, ChevronDown } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useCommissionBatches, useSaveBatch, useSaveEntries, useDeleteBatch } from '@/hooks/useCommissions';
+import { useCommissionBatches, useSaveBatch, useSaveEntries, useDeleteBatch, useDeleteBatches } from '@/hooks/useCommissions';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { BatchConfigPanel, loadConfig, type BatchConfig } from './BatchConfigPanel';
 import { BulkExcelImport } from './BulkExcelImport';
+import { BulkActionsBar } from '@/components/ui/BulkActionsBar';
+import { useBulkSelection } from '@/hooks/useBulkSelection';
 import * as XLSX from 'xlsx';
 
 const statusLabels: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' }> = {
@@ -60,7 +63,11 @@ export function BatchLoadTab() {
   const saveBatch = useSaveBatch();
   const saveEntries = useSaveEntries();
   const deleteBatch = useDeleteBatch();
+  const deleteBatches = useDeleteBatches();
   const { toast } = useToast();
+
+  const batchesWithId = batches?.map(b => ({ ...b, id: b.id })) || [];
+  const bulk = useBulkSelection(batchesWithId);
 
   // Filter insurers by config
   const filteredInsurers = config.selectedInsurers.length > 0
@@ -137,6 +144,11 @@ export function BatchLoadTab() {
 
   const handleConfigChange = useCallback(() => {}, []);
 
+  const handleBulkDelete = () => {
+    const ids = Array.from(bulk.selectedIds);
+    deleteBatches.mutate(ids, { onSuccess: () => bulk.clearSelection() });
+  };
+
   // Separate batches by currency
   const usdBatches = batches?.filter(b => b.currency === 'USD') || [];
   const bsBatches = batches?.filter(b => b.currency === 'BS') || [];
@@ -155,6 +167,12 @@ export function BatchLoadTab() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={bulk.isAllSelected}
+                    onCheckedChange={bulk.toggleAll}
+                  />
+                </TableHead>
                 <TableHead>Fecha</TableHead>
                 <TableHead>Aseguradora</TableHead>
                 <TableHead>Prima Total</TableHead>
@@ -168,6 +186,12 @@ export function BatchLoadTab() {
                 const st = statusLabels[b.status] || statusLabels.pendiente;
                 return (
                   <TableRow key={b.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={bulk.isSelected(b.id)}
+                        onCheckedChange={() => bulk.toggle(b.id)}
+                      />
+                    </TableCell>
                     <TableCell className="text-sm">{format(new Date(b.batch_date), 'dd MMM yyyy', { locale: es })}</TableCell>
                     <TableCell className="text-sm font-medium">{(b.insurer as any)?.name || '—'}</TableCell>
                     <TableCell className="text-sm">{currencyLabel === 'BS' ? 'Bs.' : '$'}{Number(b.total_premium).toLocaleString('es', { minimumFractionDigits: 2 })}</TableCell>
@@ -229,6 +253,22 @@ export function BatchLoadTab() {
           <Button className="mt-4" onClick={() => setShowNew(true)}><Plus className="h-4 w-4 mr-2" />Nuevo Lote</Button>
         </CardContent></Card>
       )}
+
+      <BulkActionsBar
+        selectedCount={bulk.selectedCount}
+        onClear={bulk.clearSelection}
+        actions={[
+          {
+            label: 'Eliminar',
+            icon: <Trash2 className="h-4 w-4" />,
+            variant: 'destructive',
+            onClick: handleBulkDelete,
+            confirm: true,
+            confirmTitle: '¿Eliminar lotes seleccionados?',
+            confirmDescription: `Se eliminarán ${bulk.selectedCount} lote(s) y todas sus entradas asociadas. Esta acción no se puede deshacer.`,
+          },
+        ]}
+      />
 
       {/* New Batch Dialog */}
       <Dialog open={showNew} onOpenChange={setShowNew}>
