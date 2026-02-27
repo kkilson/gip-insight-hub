@@ -22,6 +22,7 @@ import Advisors from "./pages/Advisors";
 import Finances from "./pages/Finances";
 import Sales from "./pages/Sales";
 import Partnerships from "./pages/Partnerships";
+import Commissions from "./pages/Commissions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -70,7 +71,7 @@ const App = () => (
             } />
             <Route path="/commissions" element={
               <ProtectedRoute requiredRoles={['acceso_total', 'revision_edicion_1']}>
-                <AppLayout><PlaceholderPage title="Comisiones" description="Gestiona las comisiones por póliza" /></AppLayout>
+                <AppLayout><Commissions /></AppLayout>
               </ProtectedRoute>
             } />
             <Route path="/tasks" element={<ProtectedLayout><PlaceholderPage title="Tareas" description="Gestiona las tareas internas del equipo" /></ProtectedLayout>} />
