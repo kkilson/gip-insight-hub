@@ -618,6 +618,219 @@ export type Database = {
           },
         ]
       }
+      commission_assignments: {
+        Row: {
+          advisor_id: string
+          amount: number
+          created_at: string
+          entry_id: string
+          id: string
+          percentage: number
+        }
+        Insert: {
+          advisor_id: string
+          amount?: number
+          created_at?: string
+          entry_id: string
+          id?: string
+          percentage?: number
+        }
+        Update: {
+          advisor_id?: string
+          amount?: number
+          created_at?: string
+          entry_id?: string
+          id?: string
+          percentage?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_assignments_advisor_id_fkey"
+            columns: ["advisor_id"]
+            isOneToOne: false
+            referencedRelation: "advisors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_assignments_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "commission_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commission_batches: {
+        Row: {
+          batch_date: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          id: string
+          insurer_id: string | null
+          notes: string | null
+          status: string
+          total_commission: number
+          total_premium: number
+          updated_at: string
+        }
+        Insert: {
+          batch_date?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          insurer_id?: string | null
+          notes?: string | null
+          status?: string
+          total_commission?: number
+          total_premium?: number
+          updated_at?: string
+        }
+        Update: {
+          batch_date?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          insurer_id?: string | null
+          notes?: string | null
+          status?: string
+          total_commission?: number
+          total_premium?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_batches_insurer_id_fkey"
+            columns: ["insurer_id"]
+            isOneToOne: false
+            referencedRelation: "insurers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commission_entries: {
+        Row: {
+          batch_id: string
+          client_id: string | null
+          client_name: string
+          commission_amount: number
+          commission_rate: number
+          created_at: string
+          discrepancy_note: string | null
+          has_discrepancy: boolean
+          id: string
+          insurer_id: string | null
+          is_verified: boolean
+          plan_type: string | null
+          policy_number: string | null
+          premium: number
+          updated_at: string
+        }
+        Insert: {
+          batch_id: string
+          client_id?: string | null
+          client_name: string
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          discrepancy_note?: string | null
+          has_discrepancy?: boolean
+          id?: string
+          insurer_id?: string | null
+          is_verified?: boolean
+          plan_type?: string | null
+          policy_number?: string | null
+          premium?: number
+          updated_at?: string
+        }
+        Update: {
+          batch_id?: string
+          client_id?: string | null
+          client_name?: string
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          discrepancy_note?: string | null
+          has_discrepancy?: boolean
+          id?: string
+          insurer_id?: string | null
+          is_verified?: boolean
+          plan_type?: string | null
+          policy_number?: string | null
+          premium?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_entries_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "commission_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_entries_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_entries_insurer_id_fkey"
+            columns: ["insurer_id"]
+            isOneToOne: false
+            referencedRelation: "insurers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commission_rules: {
+        Row: {
+          advisor_id: string
+          commission_percentage: number
+          created_at: string
+          id: string
+          insurer_id: string
+          plan_type: string
+          updated_at: string
+        }
+        Insert: {
+          advisor_id: string
+          commission_percentage?: number
+          created_at?: string
+          id?: string
+          insurer_id: string
+          plan_type?: string
+          updated_at?: string
+        }
+        Update: {
+          advisor_id?: string
+          commission_percentage?: number
+          created_at?: string
+          id?: string
+          insurer_id?: string
+          plan_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_rules_advisor_id_fkey"
+            columns: ["advisor_id"]
+            isOneToOne: false
+            referencedRelation: "advisors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_rules_insurer_id_fkey"
+            columns: ["insurer_id"]
+            isOneToOne: false
+            referencedRelation: "insurers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       discount_codes: {
         Row: {
           client_id: string | null
