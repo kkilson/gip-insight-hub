@@ -36,11 +36,13 @@ export function VerifyTab() {
   };
 
   const markBatchVerified = () => {
-    if (!entries?.every(e => e.is_verified)) {
-      toast({ title: 'Verifica todas las entradas primero', variant: 'destructive' });
-      return;
+    const unverified = entries?.filter(e => !e.is_verified) || [];
+    if (unverified.length > 0) {
+      Promise.all(unverified.map(e => updateEntry.mutateAsync({ id: e.id, is_verified: true })))
+        .then(() => updateBatchStatus.mutate({ id: selectedBatch, status: 'verificado' }));
+    } else {
+      updateBatchStatus.mutate({ id: selectedBatch, status: 'verificado' });
     }
-    updateBatchStatus.mutate({ id: selectedBatch, status: 'verificado' });
   };
 
   const handleBulkDelete = () => {
