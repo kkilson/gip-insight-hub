@@ -3,36 +3,43 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileDown, Printer, Loader2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { Checkbox } from '@/components/ui/checkbox';
+import { FileDown, Printer, Loader2, Trash2 } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useCommissionBatches } from '@/hooks/useCommissions';
+import { useCommissionBatches, useDeleteAssignmentsBulk } from '@/hooks/useCommissions';
+import { BulkActionsBar } from '@/components/ui/BulkActionsBar';
 import * as XLSX from 'xlsx';
+
+interface BreakdownEntry {
+  assignment_id: string;
+  policy_number: string;
+  client_name: string;
+  plan_type: string;
+  premium: number;
+  commission_rate: number;
+  commission_amount: number;
+  advisor_percentage: number;
+  advisor_amount: number;
+  insurer_name: string;
+  batch_date: string;
+}
 
 interface BreakdownRow {
   advisor_name: string;
   advisor_id: string;
-  entries: Array<{
-    policy_number: string;
-    client_name: string;
-    plan_type: string;
-    premium: number;
-    commission_rate: number;
-    commission_amount: number;
-    advisor_percentage: number;
-    advisor_amount: number;
-    insurer_name: string;
-    batch_date: string;
-  }>;
+  entries: BreakdownEntry[];
   total: number;
 }
 
 export function BreakdownTab() {
   const [advisorFilter, setAdvisorFilter] = useState('all');
   const [batchFilter, setBatchFilter] = useState('all');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const { data: batches } = useCommissionBatches();
   const assignedBatches = useMemo(() => batches?.filter(b => b.status === 'asignado') || [], [batches]);
+  const deleteAssignments = useDeleteAssignmentsBulk();
 
   const { data: advisors } = useQuery({
     queryKey: ['advisors-active'],
@@ -42,7 +49,6 @@ export function BreakdownTab() {
     },
   });
 
-  // Fetch all assignments for assigned batches
   const batchIds = useMemo(() => {
     if (batchFilter === 'all') return assignedBatches.map(b => b.id);
     return [batchFilter];
@@ -52,7 +58,6 @@ export function BreakdownTab() {
     queryKey: ['commission-breakdown', batchIds, advisorFilter],
     enabled: batchIds.length > 0,
     queryFn: async () => {
-      // Get entries for selected batches
       const { data: entries } = await supabase
         .from('commission_entries')
         .select('*, insurer:insurers(name), batch:commission_batches(batch_date)')
@@ -68,7 +73,6 @@ export function BreakdownTab() {
 
       if (!assignments) return [];
 
-      // Group by advisor
       const byAdvisor: Record<string, BreakdownRow> = {};
       for (const a of assignments) {
         if (advisorFilter !== 'all' && a.advisor_id !== advisorFilter) continue;
@@ -85,6 +89,7 @@ export function BreakdownTab() {
         }
         const amount = Number(a.amount);
         byAdvisor[a.advisor_id].entries.push({
+          assignment_id: a.id,
           policy_number: entry.policy_number || '—',
           client_name: entry.client_name,
           plan_type: entry.plan_type || '—',
@@ -102,6 +107,32 @@ export function BreakdownTab() {
       return Object.values(byAdvisor).sort((a, b) => b.total - a.total);
     },
   });
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const allAssignmentIds = useMemo(() =>
+    breakdownData?.flatMap(a => a.entries.map(e => e.assignment_id)) || [],
+    [breakdownData]
+  );
+
+  const toggleAll = () => {
+    if (selectedIds.size === allAssignmentIds.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(allAssignmentIds));
+    }
+  };
+
+  const handleBulkDelete = () => {
+    const ids = Array.from(selectedIds);
+    deleteAssignments.mutate(ids, { onSuccess: () => setSelectedIds(new Set()) });
+  };
 
   const exportExcel = () => {
     if (!breakdownData) return;
@@ -180,6 +211,12 @@ export function BreakdownTab() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={allAssignmentIds.length > 0 && selectedIds.size === allAssignmentIds.length}
+                          onCheckedChange={toggleAll}
+                        />
+                      </TableHead>
                       <TableHead>Póliza</TableHead>
                       <TableHead>Cliente</TableHead>
                       <TableHead>Aseguradora</TableHead>
@@ -192,8 +229,14 @@ export function BreakdownTab() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {advisor.entries.map((e, i) => (
-                      <TableRow key={i}>
+                    {advisor.entries.map((e) => (
+                      <TableRow key={e.assignment_id}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedIds.has(e.assignment_id)}
+                            onCheckedChange={() => toggleSelect(e.assignment_id)}
+                          />
+                        </TableCell>
                         <TableCell className="text-sm font-mono">{e.policy_number}</TableCell>
                         <TableCell className="text-sm">{e.client_name}</TableCell>
                         <TableCell className="text-sm">{e.insurer_name}</TableCell>
@@ -216,6 +259,22 @@ export function BreakdownTab() {
           {batchIds.length === 0 ? 'No hay lotes asignados aún.' : 'No se encontraron asignaciones con los filtros seleccionados.'}
         </CardContent></Card>
       )}
+
+      <BulkActionsBar
+        selectedCount={selectedIds.size}
+        onClear={() => setSelectedIds(new Set())}
+        actions={[
+          {
+            label: 'Eliminar asignaciones',
+            icon: <Trash2 className="h-4 w-4" />,
+            variant: 'destructive',
+            onClick: handleBulkDelete,
+            confirm: true,
+            confirmTitle: '¿Eliminar asignaciones seleccionadas?',
+            confirmDescription: `Se eliminarán ${selectedIds.size} asignación(es). Esta acción no se puede deshacer.`,
+          },
+        ]}
+      />
     </div>
   );
 }

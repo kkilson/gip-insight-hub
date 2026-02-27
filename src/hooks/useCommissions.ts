@@ -254,3 +254,54 @@ export function useDeleteBatch() {
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
 }
+
+export function useDeleteBatches() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      for (const id of ids) {
+        const { error } = await supabase.from('commission_batches').delete().eq('id', id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_, ids) => {
+      qc.invalidateQueries({ queryKey: ['commission-batches'] });
+      toast({ title: `${ids.length} lote(s) eliminado(s)` });
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
+export function useDeleteEntries() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from('commission_entries').delete().in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: (_, ids) => {
+      qc.invalidateQueries({ queryKey: ['commission-entries'] });
+      qc.invalidateQueries({ queryKey: ['commission-batches'] });
+      toast({ title: `${ids.length} entrada(s) eliminada(s)` });
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
+export function useDeleteAssignmentsBulk() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from('commission_assignments').delete().in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: (_, ids) => {
+      qc.invalidateQueries({ queryKey: ['commission-assignments'] });
+      toast({ title: `${ids.length} asignación(es) eliminada(s)` });
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}

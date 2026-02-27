@@ -5,13 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Users, Save, Loader2, CheckSquare } from 'lucide-react';
+import { Users, Save, Loader2, CheckSquare, Trash2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
   useCommissionBatches, useCommissionEntries, useCommissionRules,
   useCommissionAssignments, useSaveAssignments, useDeleteAssignmentsByEntry,
-  useUpdateBatchStatus, CommissionEntry,
+  useUpdateBatchStatus, useDeleteEntries, CommissionEntry,
 } from '@/hooks/useCommissions';
 import { useToast } from '@/hooks/use-toast';
 import { BulkActionsBar } from '@/components/ui/BulkActionsBar';
@@ -35,6 +35,7 @@ export function AssignTab() {
   const { data: existingAssignments } = useCommissionAssignments(entryIds);
   const saveAssignments = useSaveAssignments();
   const deleteByEntry = useDeleteAssignmentsByEntry();
+  const deleteEntries = useDeleteEntries();
   const updateBatchStatus = useUpdateBatchStatus();
   const { toast } = useToast();
 
@@ -51,7 +52,6 @@ export function AssignTab() {
   const selectedBatchData = useMemo(() => batches?.find(b => b.id === selectedBatch), [batches, selectedBatch]);
   const currencySymbol = selectedBatchData?.currency === 'BS' ? 'Bs.' : '$';
 
-  // Initialize local assignments from existing
   useEffect(() => {
     if (existingAssignments && entries) {
       const map: Record<string, LocalAssignment[]> = {};
@@ -65,7 +65,6 @@ export function AssignTab() {
     }
   }, [existingAssignments, entries]);
 
-  // Clear selection when batch changes
   useEffect(() => {
     setSelectedIds(new Set());
     setBulkAdvisor('');
@@ -102,7 +101,6 @@ export function AssignTab() {
     }));
   };
 
-  // Bulk selection
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
@@ -139,6 +137,11 @@ export function AssignTab() {
     setBulkPercentage(0);
   };
 
+  const handleBulkDeleteEntries = () => {
+    const ids = Array.from(selectedIds);
+    deleteEntries.mutate(ids, { onSuccess: () => setSelectedIds(new Set()) });
+  };
+
   const handleSave = async () => {
     if (!entries) return;
     try {
@@ -173,10 +176,6 @@ export function AssignTab() {
 
   const getMarginAmount = (entry: CommissionEntry) => {
     return Number(entry.commission_amount) - getAdvisorAmounts(entry);
-  };
-
-  const getEntryTotalPct = (entryId: string) => {
-    return (assignments[entryId] || []).reduce((s, a) => s + a.percentage, 0);
   };
 
   return (
@@ -231,7 +230,6 @@ export function AssignTab() {
         <Card><CardContent className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></CardContent></Card>
       ) : entries && entries.length > 0 ? (
         <div className="space-y-3">
-          {/* Select all */}
           <div className="flex items-center gap-2 px-1">
             <Checkbox
               checked={entries.length > 0 && selectedIds.size === entries.length}
@@ -304,6 +302,22 @@ export function AssignTab() {
       ) : (
         <Card><CardContent className="py-12 text-center text-muted-foreground">Este lote no tiene entradas.</CardContent></Card>
       )}
+
+      <BulkActionsBar
+        selectedCount={selectedIds.size}
+        onClear={() => setSelectedIds(new Set())}
+        actions={[
+          {
+            label: 'Eliminar entradas',
+            icon: <Trash2 className="h-4 w-4" />,
+            variant: 'destructive',
+            onClick: handleBulkDeleteEntries,
+            confirm: true,
+            confirmTitle: '¿Eliminar entradas seleccionadas?',
+            confirmDescription: `Se eliminarán ${selectedIds.size} entrada(s) y sus asignaciones. Esta acción no se puede deshacer.`,
+          },
+        ]}
+      />
     </div>
   );
 }

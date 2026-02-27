@@ -1,14 +1,15 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
-import { useCommissionBatches, useCommissionEntries, useUpdateEntry, useUpdateBatchStatus } from '@/hooks/useCommissions';
+import { AlertTriangle, CheckCircle2, Loader2, Trash2 } from 'lucide-react';
+import { useCommissionBatches, useCommissionEntries, useUpdateEntry, useUpdateBatchStatus, useDeleteEntries } from '@/hooks/useCommissions';
 import { useToast } from '@/hooks/use-toast';
+import { useBulkSelection } from '@/hooks/useBulkSelection';
+import { BulkActionsBar } from '@/components/ui/BulkActionsBar';
 
 export function VerifyTab() {
   const [selectedBatch, setSelectedBatch] = useState<string>('');
@@ -16,7 +17,9 @@ export function VerifyTab() {
   const { data: entries, isLoading } = useCommissionEntries(selectedBatch || null);
   const updateEntry = useUpdateEntry();
   const updateBatchStatus = useUpdateBatchStatus();
+  const deleteEntries = useDeleteEntries();
   const { toast } = useToast();
+  const bulk = useBulkSelection(entries);
 
   const pendingBatches = useMemo(() => batches?.filter(b => b.status === 'pendiente') || [], [batches]);
 
@@ -32,15 +35,6 @@ export function VerifyTab() {
     updateEntry.mutate({ id: entry.id, is_verified: !entry.is_verified });
   };
 
-  const markDiscrepancy = (entry: any) => {
-    const hasDisc = detectDiscrepancy(Number(entry.premium), Number(entry.commission_rate), Number(entry.commission_amount));
-    updateEntry.mutate({
-      id: entry.id,
-      has_discrepancy: hasDisc,
-      discrepancy_note: hasDisc ? `Esperado: ${currencySymbol}${(Number(entry.premium) * Number(entry.commission_rate) / 100).toFixed(2)}, Recibido: ${currencySymbol}${Number(entry.commission_amount).toFixed(2)}` : null,
-    });
-  };
-
   const markBatchVerified = () => {
     if (!entries?.every(e => e.is_verified)) {
       toast({ title: 'Verifica todas las entradas primero', variant: 'destructive' });
@@ -49,10 +43,15 @@ export function VerifyTab() {
     updateBatchStatus.mutate({ id: selectedBatch, status: 'verificado' });
   };
 
+  const handleBulkDelete = () => {
+    const ids = Array.from(bulk.selectedIds);
+    deleteEntries.mutate(ids, { onSuccess: () => bulk.clearSelection() });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-4">
-        <Select value={selectedBatch} onValueChange={setSelectedBatch}>
+        <Select value={selectedBatch} onValueChange={v => { setSelectedBatch(v); bulk.clearSelection(); }}>
           <SelectTrigger className="w-[350px]"><SelectValue placeholder="Seleccionar lote pendiente..." /></SelectTrigger>
           <SelectContent>
             {pendingBatches.map(b => (
@@ -79,6 +78,12 @@ export function VerifyTab() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={bulk.isAllSelected}
+                      onCheckedChange={bulk.toggleAll}
+                    />
+                  </TableHead>
                   <TableHead className="w-10">✓</TableHead>
                   <TableHead>Póliza</TableHead>
                   <TableHead>Cliente</TableHead>
@@ -94,6 +99,12 @@ export function VerifyTab() {
                   const hasDisc = detectDiscrepancy(Number(entry.premium), Number(entry.commission_rate), Number(entry.commission_amount));
                   return (
                     <TableRow key={entry.id} className={hasDisc ? 'bg-destructive/5' : ''}>
+                      <TableCell>
+                        <Checkbox
+                          checked={bulk.isSelected(entry.id)}
+                          onCheckedChange={() => bulk.toggle(entry.id)}
+                        />
+                      </TableCell>
                       <TableCell>
                         <Checkbox checked={entry.is_verified} onCheckedChange={() => toggleVerified(entry)} />
                       </TableCell>
@@ -125,6 +136,22 @@ export function VerifyTab() {
       ) : (
         <Card><CardContent className="py-12 text-center text-muted-foreground">Este lote no tiene entradas.</CardContent></Card>
       )}
+
+      <BulkActionsBar
+        selectedCount={bulk.selectedCount}
+        onClear={bulk.clearSelection}
+        actions={[
+          {
+            label: 'Eliminar entradas',
+            icon: <Trash2 className="h-4 w-4" />,
+            variant: 'destructive',
+            onClick: handleBulkDelete,
+            confirm: true,
+            confirmTitle: '¿Eliminar entradas seleccionadas?',
+            confirmDescription: `Se eliminarán ${bulk.selectedCount} entrada(s) del lote. Esta acción no se puede deshacer.`,
+          },
+        ]}
+      />
     </div>
   );
 }
