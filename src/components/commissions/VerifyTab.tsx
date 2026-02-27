@@ -84,7 +84,6 @@ export function VerifyTab() {
                       onCheckedChange={bulk.toggleAll}
                     />
                   </TableHead>
-                  <TableHead className="w-10">✓</TableHead>
                   <TableHead>Póliza</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Plan</TableHead>
@@ -104,9 +103,6 @@ export function VerifyTab() {
                           checked={bulk.isSelected(entry.id)}
                           onCheckedChange={() => bulk.toggle(entry.id)}
                         />
-                      </TableCell>
-                      <TableCell>
-                        <Checkbox checked={entry.is_verified} onCheckedChange={() => toggleVerified(entry)} />
                       </TableCell>
                       <TableCell className="text-sm font-mono">{entry.policy_number || '—'}</TableCell>
                       <TableCell className="text-sm">{entry.client_name}</TableCell>
