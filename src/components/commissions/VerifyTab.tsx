@@ -20,6 +20,9 @@ export function VerifyTab() {
 
   const pendingBatches = useMemo(() => batches?.filter(b => b.status === 'pendiente') || [], [batches]);
 
+  const selectedBatchData = useMemo(() => batches?.find(b => b.id === selectedBatch), [batches, selectedBatch]);
+  const currencySymbol = selectedBatchData?.currency === 'BS' ? 'Bs.' : '$';
+
   const detectDiscrepancy = (premium: number, rate: number, amount: number) => {
     const expected = premium * rate / 100;
     return Math.abs(expected - amount) > 0.01;
@@ -34,7 +37,7 @@ export function VerifyTab() {
     updateEntry.mutate({
       id: entry.id,
       has_discrepancy: hasDisc,
-      discrepancy_note: hasDisc ? `Esperado: $${(Number(entry.premium) * Number(entry.commission_rate) / 100).toFixed(2)}, Recibido: $${Number(entry.commission_amount).toFixed(2)}` : null,
+      discrepancy_note: hasDisc ? `Esperado: ${currencySymbol}${(Number(entry.premium) * Number(entry.commission_rate) / 100).toFixed(2)}, Recibido: ${currencySymbol}${Number(entry.commission_amount).toFixed(2)}` : null,
     });
   };
 
@@ -97,15 +100,15 @@ export function VerifyTab() {
                       <TableCell className="text-sm font-mono">{entry.policy_number || '—'}</TableCell>
                       <TableCell className="text-sm">{entry.client_name}</TableCell>
                       <TableCell className="text-sm">{entry.plan_type || '—'}</TableCell>
-                      <TableCell className="text-sm">${Number(entry.premium).toLocaleString('es', { minimumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-sm">{currencySymbol}{Number(entry.premium).toLocaleString('es', { minimumFractionDigits: 2 })}</TableCell>
                       <TableCell className="text-sm">{Number(entry.commission_rate)}%</TableCell>
-                      <TableCell className="text-sm font-semibold">${Number(entry.commission_amount).toLocaleString('es', { minimumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-sm font-semibold">{currencySymbol}{Number(entry.commission_amount).toLocaleString('es', { minimumFractionDigits: 2 })}</TableCell>
                       <TableCell>
                         {hasDisc ? (
                           <div className="flex items-center gap-1">
                             <AlertTriangle className="h-4 w-4 text-destructive" />
                             <span className="text-xs text-destructive">
-                              Esperado: ${(Number(entry.premium) * Number(entry.commission_rate) / 100).toFixed(2)}
+                              Esperado: {currencySymbol}{(Number(entry.premium) * Number(entry.commission_rate) / 100).toFixed(2)}
                             </span>
                           </div>
                         ) : (
