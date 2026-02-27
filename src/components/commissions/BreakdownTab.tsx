@@ -1,20 +1,23 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { FileDown, Printer, Loader2, Trash2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { FileDown, Printer, Loader2, Trash2, Check, X } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useCommissionBatches, useDeleteAssignmentsBulk } from '@/hooks/useCommissions';
+import { useCommissionBatches, useDeleteAssignmentsBulk, useUpdateEntry, useUpdateAssignment } from '@/hooks/useCommissions';
 import { useBrokerSettings } from '@/hooks/useBrokerSettings';
 import { BulkActionsBar } from '@/components/ui/BulkActionsBar';
 import { generateBreakdownPdf } from './generateBreakdownPdf';
+import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 
 interface BreakdownEntry {
   assignment_id: string;
+  entry_id: string;
   policy_number: string;
   client_name: string;
   plan_type: string;
@@ -34,15 +37,73 @@ interface BreakdownRow {
   total: number;
 }
 
+// Inline editable cell component
+function EditableCell({
+  value,
+  suffix,
+  prefix,
+  isEditing,
+  onStartEdit,
+  onChange,
+  type = 'number',
+  className = '',
+}: {
+  value: number | string;
+  suffix?: string;
+  prefix?: string;
+  isEditing: boolean;
+  onStartEdit: () => void;
+  onChange: (val: string) => void;
+  type?: string;
+  className?: string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  if (isEditing) {
+    return (
+      <Input
+        ref={inputRef}
+        type={type}
+        defaultValue={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-7 w-24 text-sm px-1"
+        step="any"
+      />
+    );
+  }
+
+  return (
+    <span
+      className={`cursor-pointer hover:bg-muted/50 px-1 py-0.5 rounded transition-colors ${className}`}
+      onDoubleClick={onStartEdit}
+      title="Doble clic para editar"
+    >
+      {prefix}{typeof value === 'number' ? value.toLocaleString('es', { minimumFractionDigits: 2 }) : value}{suffix}
+    </span>
+  );
+}
+
 export function BreakdownTab() {
   const [advisorFilter, setAdvisorFilter] = useState('all');
   const [batchFilter, setBatchFilter] = useState('all');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null);
+  const [editValues, setEditValues] = useState<Record<string, string>>({});
 
+  const queryClient = useQueryClient();
   const { data: batches } = useCommissionBatches();
   const { settings: brokerSettings } = useBrokerSettings();
   const assignedBatches = useMemo(() => batches?.filter(b => b.status === 'asignado') || [], [batches]);
   const deleteAssignments = useDeleteAssignmentsBulk();
+  const updateEntry = useUpdateEntry();
+  const updateAssignment = useUpdateAssignment();
 
   const { data: advisors } = useQuery({
     queryKey: ['advisors-active'],
@@ -99,6 +160,7 @@ export function BreakdownTab() {
         const amount = Number(a.amount);
         byAdvisor[a.advisor_id].entries.push({
           assignment_id: a.id,
+          entry_id: a.entry_id,
           policy_number: entry.policy_number || '—',
           client_name: entry.client_name,
           plan_type: entry.plan_type || '—',
@@ -143,6 +205,73 @@ export function BreakdownTab() {
     deleteAssignments.mutate(ids, { onSuccess: () => setSelectedIds(new Set()) });
   };
 
+  const startEdit = (id: string, field: string, currentValue: number) => {
+    setEditingCell({ id, field });
+    setEditValues({ [field]: String(currentValue) });
+  };
+
+  const cancelEdit = () => {
+    setEditingCell(null);
+    setEditValues({});
+  };
+
+  const saveEdit = async (entry: BreakdownEntry) => {
+    if (!editingCell) return;
+    const { field } = editingCell;
+    const newVal = parseFloat(editValues[field] || '0');
+
+    if (isNaN(newVal) || newVal < 0) {
+      toast.error('Valor inválido');
+      cancelEdit();
+      return;
+    }
+
+    try {
+      if (field === 'premium' || field === 'commission_rate') {
+        // Update the commission_entry
+        const updates: any = {};
+        const premium = field === 'premium' ? newVal : entry.premium;
+        const rate = field === 'commission_rate' ? newVal : entry.commission_rate;
+        updates[field] = newVal;
+        updates.commission_amount = premium * (rate / 100);
+        
+        await updateEntry.mutateAsync({ id: entry.entry_id, ...updates });
+        
+        // Also update the assignment amount based on new commission
+        const newCommission = premium * (rate / 100);
+        const newAssignmentAmount = newCommission * (entry.advisor_percentage / 100);
+        await updateAssignment.mutateAsync({
+          id: entry.assignment_id,
+          amount: newAssignmentAmount,
+        });
+      } else if (field === 'advisor_percentage') {
+        const newAmount = entry.commission_amount * (newVal / 100);
+        await updateAssignment.mutateAsync({
+          id: entry.assignment_id,
+          percentage: newVal,
+          amount: newAmount,
+        });
+      } else if (field === 'advisor_amount') {
+        await updateAssignment.mutateAsync({
+          id: entry.assignment_id,
+          amount: newVal,
+        });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['commission-breakdown'] });
+      toast.success('Actualizado correctamente');
+    } catch (err: any) {
+      toast.error('Error al actualizar: ' + err.message);
+    }
+
+    cancelEdit();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, entry: BreakdownEntry) => {
+    if (e.key === 'Enter') saveEdit(entry);
+    if (e.key === 'Escape') cancelEdit();
+  };
+
   const exportExcel = () => {
     if (!breakdownData) return;
     const rows: any[] = [];
@@ -171,11 +300,13 @@ export function BreakdownTab() {
 
   const handlePrint = () => {
     if (!breakdownData || breakdownData.length === 0) return;
-    // Print each advisor's breakdown as a separate PDF
     for (const advisor of breakdownData) {
       generateBreakdownPdf(advisor, currencySymbol, brokerSettings);
     }
   };
+
+  const isEditingRow = (assignmentId: string, field: string) =>
+    editingCell?.id === assignmentId && editingCell?.field === field;
 
   return (
     <div className="space-y-4">
@@ -208,6 +339,13 @@ export function BreakdownTab() {
         </div>
       </div>
 
+      {/* Hint */}
+      {breakdownData && breakdownData.length > 0 && !editingCell && (
+        <p className="text-xs text-muted-foreground">
+          💡 Doble clic en cualquier celda numérica para editarla en línea
+        </p>
+      )}
+
       {isLoading ? (
         <Card><CardContent className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></CardContent></Card>
       ) : breakdownData && breakdownData.length > 0 ? (
@@ -217,8 +355,8 @@ export function BreakdownTab() {
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-center">
                   <CardTitle className="text-base">{advisor.advisor_name}</CardTitle>
-                   <span className="text-lg font-bold text-primary">
-                     Total: {currencySymbol}{advisor.total.toLocaleString('es', { minimumFractionDigits: 2 })}
+                  <span className="text-lg font-bold text-primary">
+                    Total: {currencySymbol}{advisor.total.toLocaleString('es', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
               </CardHeader>
@@ -241,28 +379,82 @@ export function BreakdownTab() {
                       <TableHead>Com. Total</TableHead>
                       <TableHead>% Asesor</TableHead>
                       <TableHead>Monto Asesor</TableHead>
+                      {editingCell && <TableHead className="w-20"></TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {advisor.entries.map((e) => (
-                      <TableRow key={e.assignment_id}>
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedIds.has(e.assignment_id)}
-                            onCheckedChange={() => toggleSelect(e.assignment_id)}
-                          />
-                        </TableCell>
-                        <TableCell className="text-sm font-mono">{e.policy_number}</TableCell>
-                        <TableCell className="text-sm">{e.client_name}</TableCell>
-                        <TableCell className="text-sm">{e.insurer_name}</TableCell>
-                        <TableCell className="text-sm">{e.plan_type}</TableCell>
-                        <TableCell className="text-sm">{currencySymbol}{e.premium.toLocaleString('es', { minimumFractionDigits: 2 })}</TableCell>
-                        <TableCell className="text-sm">{e.commission_rate}%</TableCell>
-                        <TableCell className="text-sm">{currencySymbol}{e.commission_amount.toLocaleString('es', { minimumFractionDigits: 2 })}</TableCell>
-                        <TableCell className="text-sm font-medium">{e.advisor_percentage}%</TableCell>
-                        <TableCell className="text-sm font-bold">{currencySymbol}{e.advisor_amount.toLocaleString('es', { minimumFractionDigits: 2 })}</TableCell>
-                      </TableRow>
-                    ))}
+                    {advisor.entries.map((e) => {
+                      const isRowEditing = editingCell?.id === e.assignment_id;
+                      return (
+                        <TableRow key={e.assignment_id} className={isRowEditing ? 'bg-muted/30' : ''} onKeyDown={(ev) => handleKeyDown(ev, e)}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedIds.has(e.assignment_id)}
+                              onCheckedChange={() => toggleSelect(e.assignment_id)}
+                            />
+                          </TableCell>
+                          <TableCell className="text-sm font-mono">{e.policy_number}</TableCell>
+                          <TableCell className="text-sm">{e.client_name}</TableCell>
+                          <TableCell className="text-sm">{e.insurer_name}</TableCell>
+                          <TableCell className="text-sm">{e.plan_type}</TableCell>
+                          <TableCell className="text-sm">
+                            <EditableCell
+                              value={e.premium}
+                              prefix={currencySymbol}
+                              isEditing={isEditingRow(e.assignment_id, 'premium')}
+                              onStartEdit={() => startEdit(e.assignment_id, 'premium', e.premium)}
+                              onChange={(v) => setEditValues(prev => ({ ...prev, premium: v }))}
+                            />
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            <EditableCell
+                              value={e.commission_rate}
+                              suffix="%"
+                              isEditing={isEditingRow(e.assignment_id, 'commission_rate')}
+                              onStartEdit={() => startEdit(e.assignment_id, 'commission_rate', e.commission_rate)}
+                              onChange={(v) => setEditValues(prev => ({ ...prev, commission_rate: v }))}
+                            />
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {currencySymbol}{e.commission_amount.toLocaleString('es', { minimumFractionDigits: 2 })}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            <EditableCell
+                              value={e.advisor_percentage}
+                              suffix="%"
+                              isEditing={isEditingRow(e.assignment_id, 'advisor_percentage')}
+                              onStartEdit={() => startEdit(e.assignment_id, 'advisor_percentage', e.advisor_percentage)}
+                              onChange={(v) => setEditValues(prev => ({ ...prev, advisor_percentage: v }))}
+                              className="font-medium"
+                            />
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            <EditableCell
+                              value={e.advisor_amount}
+                              prefix={currencySymbol}
+                              isEditing={isEditingRow(e.assignment_id, 'advisor_amount')}
+                              onStartEdit={() => startEdit(e.assignment_id, 'advisor_amount', e.advisor_amount)}
+                              onChange={(v) => setEditValues(prev => ({ ...prev, advisor_amount: v }))}
+                              className="font-bold"
+                            />
+                          </TableCell>
+                          {editingCell && (
+                            <TableCell>
+                              {isRowEditing && (
+                                <div className="flex gap-1">
+                                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => saveEdit(e)}>
+                                    <Check className="h-4 w-4 text-primary" />
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={cancelEdit}>
+                                    <X className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </CardContent>
