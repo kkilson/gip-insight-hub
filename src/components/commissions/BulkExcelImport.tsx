@@ -11,7 +11,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useSaveBatch, useSaveEntries } from '@/hooks/useCommissions';
 import { useToast } from '@/hooks/use-toast';
-import { loadConfig, type BatchConfig } from './BatchConfigPanel';
+import { loadConfig } from './BatchConfigPanel';
 import * as XLSX from 'xlsx';
 
 interface ParsedBatch {
@@ -21,8 +21,6 @@ interface ParsedBatch {
   entries: Array<{
     policy_number: string;
     client_name: string;
-    advisor_name: string;
-    advisor_id: string | null;
     plan_type: string;
     premium: number;
     commission_rate: number;
@@ -46,27 +44,18 @@ export function BulkExcelImport() {
     },
   });
 
-  const { data: advisors } = useQuery({
-    queryKey: ['advisors-list'],
-    queryFn: async () => {
-      const { data } = await supabase.from('advisors').select('id, full_name').eq('is_active', true).order('full_name');
-      return data || [];
-    },
-  });
-
   const config = loadConfig();
 
   const handleDownloadTemplate = () => {
     const wb = XLSX.utils.book_new();
 
-    // Main data sheet
-    const headers = ['Aseguradora', 'Moneda', 'Póliza', 'Cliente', 'Asesor', 'Plan', 'Prima', '% Comisión', 'Monto Comisión'];
+    // Main data sheet — NO advisor column
+    const headers = ['Aseguradora', 'Moneda', 'Póliza', 'Cliente', 'Plan', 'Prima', '% Comisión', 'Monto Comisión'];
     const exampleRow = [
       insurers?.[0]?.name || 'Nombre Aseguradora',
       config.defaultCurrency || 'USD',
       'POL-001',
       'Juan Pérez',
-      advisors?.[0]?.full_name || 'Nombre Asesor',
       'Vida',
       '1000',
       '15',
@@ -86,16 +75,6 @@ export function BulkExcelImport() {
     ]);
     XLSX.utils.book_append_sheet(wb, insSheet, 'Aseguradoras');
 
-    // Advisors reference sheet
-    const filteredAdvisors = config.selectedAdvisors.length > 0
-      ? advisors?.filter(a => config.selectedAdvisors.includes(a.id)) || []
-      : advisors || [];
-    const advSheet = XLSX.utils.aoa_to_sheet([
-      ['Asesores Disponibles'],
-      ...filteredAdvisors.map(a => [a.full_name]),
-    ]);
-    XLSX.utils.book_append_sheet(wb, advSheet, 'Asesores');
-
     // Currencies sheet
     const curSheet = XLSX.utils.aoa_to_sheet([
       ['Monedas Disponibles'],
@@ -112,13 +91,6 @@ export function BulkExcelImport() {
     if (!name || !insurers) return null;
     const n = name.trim().toLowerCase();
     const found = insurers.find(i => i.name.toLowerCase() === n);
-    return found?.id || null;
-  };
-
-  const findAdvisorId = (name: string): string | null => {
-    if (!name || !advisors) return null;
-    const n = name.trim().toLowerCase();
-    const found = advisors.find(a => a.full_name.toLowerCase() === n);
     return found?.id || null;
   };
 
@@ -150,13 +122,10 @@ export function BulkExcelImport() {
 
           const premium = parseFloat(r['Prima'] || r['prima'] || r['PRIMA'] || 0);
           const rate = parseFloat(r['% Comisión'] || r['% comisión'] || r['% COMISION'] || r['commission_rate'] || 0);
-          const advisorName = String(r['Asesor'] || r['asesor'] || r['ASESOR'] || '').trim();
 
           groups.get(key)!.entries.push({
             policy_number: String(r['Póliza'] || r['poliza'] || r['POLIZA'] || ''),
             client_name: String(r['Cliente'] || r['cliente'] || r['CLIENTE'] || ''),
-            advisor_name: advisorName,
-            advisor_id: findAdvisorId(advisorName),
             plan_type: String(r['Plan'] || r['plan'] || r['PLAN'] || ''),
             premium,
             commission_rate: rate,
@@ -228,7 +197,7 @@ export function BulkExcelImport() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Descarga la plantilla con tus aseguradoras y asesores configurados, llénala y cárgala para crear todos los lotes automáticamente.
+            Descarga la plantilla con tus aseguradoras configuradas, llénala y cárgala para crear todos los lotes automáticamente. La asignación de asesores se hace en la pestaña "Asignar".
           </p>
 
           <div className="flex flex-wrap gap-2">
@@ -287,7 +256,6 @@ export function BulkExcelImport() {
                       <TableRow>
                         <TableHead className="text-xs">Póliza</TableHead>
                         <TableHead className="text-xs">Cliente</TableHead>
-                        <TableHead className="text-xs">Asesor</TableHead>
                         <TableHead className="text-xs">Plan</TableHead>
                         <TableHead className="text-xs text-right">Prima</TableHead>
                         <TableHead className="text-xs text-right">% Com.</TableHead>
@@ -295,22 +263,22 @@ export function BulkExcelImport() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {batch.entries.slice(0, 5).map((e, j) => (
-                        <TableRow key={j}>
-                          <TableCell className="text-xs">{e.policy_number}</TableCell>
-                          <TableCell className="text-xs">{e.client_name}</TableCell>
-                          <TableCell className="text-xs">
-                            <span className={e.advisor_id ? '' : 'text-amber-500'}>{e.advisor_name || '—'}</span>
-                          </TableCell>
-                          <TableCell className="text-xs">{e.plan_type}</TableCell>
-                          <TableCell className="text-xs text-right">{e.premium.toLocaleString('es', { minimumFractionDigits: 2 })}</TableCell>
-                          <TableCell className="text-xs text-right">{e.commission_rate}%</TableCell>
-                          <TableCell className="text-xs text-right">{e.commission_amount.toLocaleString('es', { minimumFractionDigits: 2 })}</TableCell>
-                        </TableRow>
-                      ))}
+                      {batch.entries.slice(0, 5).map((e, j) => {
+                        const sym = batch.currency === 'BS' ? 'Bs.' : '$';
+                        return (
+                          <TableRow key={j}>
+                            <TableCell className="text-xs">{e.policy_number}</TableCell>
+                            <TableCell className="text-xs">{e.client_name}</TableCell>
+                            <TableCell className="text-xs">{e.plan_type}</TableCell>
+                            <TableCell className="text-xs text-right">{sym}{e.premium.toLocaleString('es', { minimumFractionDigits: 2 })}</TableCell>
+                            <TableCell className="text-xs text-right">{e.commission_rate}%</TableCell>
+                            <TableCell className="text-xs text-right">{sym}{e.commission_amount.toLocaleString('es', { minimumFractionDigits: 2 })}</TableCell>
+                          </TableRow>
+                        );
+                      })}
                       {batch.entries.length > 5 && (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-xs text-center text-muted-foreground">
+                          <TableCell colSpan={6} className="text-xs text-center text-muted-foreground">
                             ... y {batch.entries.length - 5} más
                           </TableCell>
                         </TableRow>
