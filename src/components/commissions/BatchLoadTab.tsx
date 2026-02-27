@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,13 +8,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Upload, Trash2, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Plus, Upload, Trash2, FileSpreadsheet, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useCommissionBatches, useSaveBatch, useSaveEntries, useDeleteBatch } from '@/hooks/useCommissions';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import { BatchConfigPanel, loadConfig, type BatchConfig } from './BatchConfigPanel';
+import { BulkExcelImport } from './BulkExcelImport';
 import * as XLSX from 'xlsx';
 
 const statusLabels: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' }> = {
@@ -36,9 +39,11 @@ const emptyEntry: ManualEntry = { policy_number: '', client_name: '', plan_type:
 
 export function BatchLoadTab() {
   const [showNew, setShowNew] = useState(false);
+  const [showConfig, setShowConfig] = useState(false);
+  const config = loadConfig();
   const [insurerId, setInsurerId] = useState('');
   const [batchDate, setBatchDate] = useState(new Date().toISOString().split('T')[0]);
-  const [currency, setCurrency] = useState('USD');
+  const [currency, setCurrency] = useState<string>(config.defaultCurrency || 'USD');
   const [notes, setNotes] = useState('');
   const [manualEntries, setManualEntries] = useState<ManualEntry[]>([{ ...emptyEntry }]);
   const [loadMode, setLoadMode] = useState<'manual' | 'excel'>('manual');
@@ -57,13 +62,17 @@ export function BatchLoadTab() {
   const deleteBatch = useDeleteBatch();
   const { toast } = useToast();
 
+  // Filter insurers by config
+  const filteredInsurers = config.selectedInsurers.length > 0
+    ? insurers?.filter(i => config.selectedInsurers.includes(i.id))
+    : insurers;
+
   const addRow = () => setManualEntries(prev => [...prev, { ...emptyEntry }]);
   const removeRow = (i: number) => setManualEntries(prev => prev.filter((_, idx) => idx !== i));
   const updateRow = (i: number, field: keyof ManualEntry, value: string) => {
     setManualEntries(prev => {
       const copy = [...prev];
       copy[i] = { ...copy[i], [field]: value };
-      // Auto-calc commission_amount
       if (field === 'premium' || field === 'commission_rate') {
         const premium = parseFloat(field === 'premium' ? value : copy[i].premium) || 0;
         const rate = parseFloat(field === 'commission_rate' ? value : copy[i].commission_rate) || 0;
@@ -126,58 +135,97 @@ export function BatchLoadTab() {
     } catch { /* handled by mutation */ }
   };
 
+  const handleConfigChange = useCallback(() => {}, []);
+
+  // Separate batches by currency
+  const usdBatches = batches?.filter(b => b.currency === 'USD') || [];
+  const bsBatches = batches?.filter(b => b.currency === 'BS') || [];
+
+  const renderBatchTable = (items: typeof batches, currencyLabel: string) => {
+    if (!items || items.length === 0) return null;
+    return (
+      <Card>
+        <CardHeader className="py-2 px-4">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Badge variant="outline">{currencyLabel}</Badge>
+            {items.length} lotes
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Fecha</TableHead>
+                <TableHead>Aseguradora</TableHead>
+                <TableHead>Prima Total</TableHead>
+                <TableHead>Comisión Total</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map(b => {
+                const st = statusLabels[b.status] || statusLabels.pendiente;
+                return (
+                  <TableRow key={b.id}>
+                    <TableCell className="text-sm">{format(new Date(b.batch_date), 'dd MMM yyyy', { locale: es })}</TableCell>
+                    <TableCell className="text-sm font-medium">{(b.insurer as any)?.name || '—'}</TableCell>
+                    <TableCell className="text-sm">{currencyLabel === 'BS' ? 'Bs.' : '$'}{Number(b.total_premium).toLocaleString('es', { minimumFractionDigits: 2 })}</TableCell>
+                    <TableCell className="text-sm font-semibold">{currencyLabel === 'BS' ? 'Bs.' : '$'}{Number(b.total_commission).toLocaleString('es', { minimumFractionDigits: 2 })}</TableCell>
+                    <TableCell><Badge variant={st.variant}>{st.label}</Badge></TableCell>
+                    <TableCell>
+                      {b.status === 'pendiente' && (
+                        <Button variant="ghost" size="icon" onClick={() => deleteBatch.mutate(b.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center flex-wrap gap-2">
         <h2 className="text-lg font-semibold">Lotes de Comisiones</h2>
-        <Button onClick={() => setShowNew(true)}><Plus className="h-4 w-4 mr-2" />Nuevo Lote</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowConfig(!showConfig)}>
+            <ChevronDown className="h-4 w-4 mr-1" />
+            Configuración
+          </Button>
+          <Button onClick={() => setShowNew(true)}>
+            <Plus className="h-4 w-4 mr-2" />Nuevo Lote
+          </Button>
+        </div>
       </div>
 
+      {/* Config & Bulk Import */}
+      <Collapsible open={showConfig} onOpenChange={setShowConfig}>
+        <CollapsibleContent>
+          <div className="grid md:grid-cols-2 gap-4">
+            <BatchConfigPanel onConfigChange={handleConfigChange} />
+            <BulkExcelImport />
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+
+      {/* Batch lists by currency */}
       {isLoading ? (
         <Card><CardContent className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></CardContent></Card>
       ) : batches && batches.length > 0 ? (
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Aseguradora</TableHead>
-                  <TableHead>Prima Total</TableHead>
-                  <TableHead>Comisión Total</TableHead>
-                  <TableHead>Moneda</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {batches.map(b => {
-                  const st = statusLabels[b.status] || statusLabels.pendiente;
-                  return (
-                    <TableRow key={b.id}>
-                      <TableCell className="text-sm">{format(new Date(b.batch_date), 'dd MMM yyyy', { locale: es })}</TableCell>
-                      <TableCell className="text-sm font-medium">{(b.insurer as any)?.name || '—'}</TableCell>
-                      <TableCell className="text-sm">${Number(b.total_premium).toLocaleString('es', { minimumFractionDigits: 2 })}</TableCell>
-                      <TableCell className="text-sm font-semibold">${Number(b.total_commission).toLocaleString('es', { minimumFractionDigits: 2 })}</TableCell>
-                      <TableCell className="text-sm">{b.currency}</TableCell>
-                      <TableCell><Badge variant={st.variant}>{st.label}</Badge></TableCell>
-                      <TableCell>
-                        {b.status === 'pendiente' && (
-                          <Button variant="ghost" size="icon" onClick={() => deleteBatch.mutate(b.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          {renderBatchTable(usdBatches, 'USD')}
+          {renderBatchTable(bsBatches, 'BS')}
+        </div>
       ) : (
         <Card><CardContent className="flex flex-col items-center py-12 text-center">
           <FileSpreadsheet className="h-12 w-12 text-muted-foreground/50 mb-4" />
           <h3 className="text-lg font-medium">Sin lotes</h3>
-          <p className="text-muted-foreground">Crea tu primer lote de comisiones.</p>
+          <p className="text-muted-foreground">Crea tu primer lote de comisiones o usa la carga masiva.</p>
           <Button className="mt-4" onClick={() => setShowNew(true)}><Plus className="h-4 w-4 mr-2" />Nuevo Lote</Button>
         </CardContent></Card>
       )}
@@ -195,7 +243,7 @@ export function BatchLoadTab() {
               <Select value={insurerId} onValueChange={setInsurerId}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                 <SelectContent>
-                  {insurers?.map(ins => <SelectItem key={ins.id} value={ins.id}>{ins.name}</SelectItem>)}
+                  {filteredInsurers?.map(ins => <SelectItem key={ins.id} value={ins.id}>{ins.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -208,7 +256,8 @@ export function BatchLoadTab() {
               <Select value={currency} onValueChange={setCurrency}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {['USD', 'EUR', 'BS', 'COP'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  <SelectItem value="USD">USD — Dólares</SelectItem>
+                  <SelectItem value="BS">BS — Bolívares</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -231,7 +280,7 @@ export function BatchLoadTab() {
                 <Input type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelUpload} />
                 <Upload className="h-5 w-5 text-muted-foreground" />
               </div>
-              <p className="text-xs text-muted-foreground">Columnas esperadas: Póliza, Cliente, Plan, Prima, % Comisión</p>
+              <p className="text-xs text-muted-foreground">Columnas: Póliza, Cliente, Plan, Prima, % Comisión</p>
             </div>
           )}
 
