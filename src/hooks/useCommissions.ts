@@ -290,6 +290,20 @@ export function useDeleteEntries() {
   });
 }
 
+export function useUpdateAssignment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string; percentage?: number; amount?: number }) => {
+      const { error } = await supabase.from('commission_assignments').update(updates).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['commission-assignments'] });
+      qc.invalidateQueries({ queryKey: ['commission-breakdown'] });
+    },
+  });
+}
+
 export function useDeleteAssignmentsBulk() {
   const qc = useQueryClient();
   const { toast } = useToast();
