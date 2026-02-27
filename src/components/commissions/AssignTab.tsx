@@ -260,10 +260,17 @@ export function AssignTab() {
                         <span className="text-sm text-muted-foreground ml-2">{entry.policy_number || ''}</span>
                         <span className="text-sm text-muted-foreground ml-2">• {entry.plan_type || '—'}</span>
                       </div>
-                      <div className="text-right space-x-2">
-                        <span className="text-sm">Comisión: </span>
-                        <span className="font-semibold">{currencySymbol}{Number(entry.commission_amount).toFixed(2)}</span>
-                        <Badge variant={marginAmount >= 0 ? 'outline' : 'destructive'}>
+                      <div className="text-right flex items-center gap-2 flex-wrap justify-end">
+                        <Badge variant="secondary" className="font-normal">
+                          Prima: {currencySymbol}{Number(entry.premium).toFixed(2)}
+                        </Badge>
+                        <Badge variant="secondary" className="font-normal">
+                          % Aseg: {Number(entry.commission_rate).toFixed(1)}%
+                        </Badge>
+                        <Badge variant="outline" className="font-semibold">
+                          Comisión: {currencySymbol}{Number(entry.commission_amount).toFixed(2)}
+                        </Badge>
+                        <Badge variant={marginAmount >= 0 ? 'default' : 'destructive'}>
                           Margen: {currencySymbol}{marginAmount.toFixed(2)} ({marginPct.toFixed(1)}%)
                         </Badge>
                       </div>
