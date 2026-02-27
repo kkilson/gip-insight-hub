@@ -7,6 +7,7 @@ interface BreakdownEntry {
   client_name: string;
   premium: number;
   commission_rate: number;
+  advisor_percentage: number;
   advisor_amount: number;
 }
 
@@ -51,7 +52,7 @@ export async function generateBreakdownPdf(
       <td>${e.policy_number}</td>
       <td>${e.client_name}</td>
       <td class="num">${fmtCurrency(e.premium, currencySymbol)}</td>
-      <td class="num">${e.commission_rate}%</td>
+      <td class="num">${e.advisor_percentage}%</td>
       <td class="num">${fmtCurrency(e.advisor_amount, currencySymbol)}</td>
     </tr>
   `).join('');
@@ -146,8 +147,8 @@ export async function generateBreakdownPdf(
           <th>Nº Póliza</th>
           <th>Cliente</th>
           <th class="num">Prima</th>
-          <th class="num">% Comisión</th>
-          <th class="num">Comisión</th>
+          <th class="num">% Asesor</th>
+          <th class="num">Monto Asesor</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
