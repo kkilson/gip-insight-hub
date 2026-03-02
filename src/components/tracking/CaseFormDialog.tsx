@@ -29,6 +29,8 @@ export function CaseFormDialog({ open, onOpenChange }: CaseFormDialogProps) {
   const [priority, setPriority] = useState('normal');
   const [dueDate, setDueDate] = useState('');
   const [affectsConsumption, setAffectsConsumption] = useState(false);
+  const [claimedAmountUsd, setClaimedAmountUsd] = useState('');
+  const [claimedAmountBs, setClaimedAmountBs] = useState('');
 
   // Search clients
   useEffect(() => {
@@ -103,6 +105,8 @@ export function CaseFormDialog({ open, onOpenChange }: CaseFormDialogProps) {
       priority,
       due_date: dueDate || undefined,
       affects_consumption: affectsConsumption,
+      claimed_amount_usd: claimedAmountUsd ? parseFloat(claimedAmountUsd) : 0,
+      claimed_amount_bs: claimedAmountBs ? parseFloat(claimedAmountBs) : 0,
     });
     onOpenChange(false);
     resetForm();
@@ -112,6 +116,7 @@ export function CaseFormDialog({ open, onOpenChange }: CaseFormDialogProps) {
     setCaseTypeId(''); setClientSearch(''); setSelectedClient(null);
     setPolicyId(''); setTitle(''); setDescription('');
     setPriority('normal'); setDueDate(''); setAffectsConsumption(false);
+    setClaimedAmountUsd(''); setClaimedAmountBs('');
   };
 
   return (
@@ -236,6 +241,20 @@ export function CaseFormDialog({ open, onOpenChange }: CaseFormDialogProps) {
             <Switch checked={affectsConsumption} onCheckedChange={setAffectsConsumption} />
             <Label>Afecta consumo de póliza</Label>
           </div>
+
+          {/* Amount fields - show when affects consumption */}
+          {affectsConsumption && (
+            <div className="grid grid-cols-2 gap-4 p-3 border rounded-md bg-muted/30">
+              <div className="space-y-2">
+                <Label>Monto Reclamado (USD)</Label>
+                <Input type="number" step="0.01" min="0" value={claimedAmountUsd} onChange={(e) => setClaimedAmountUsd(e.target.value)} placeholder="0.00" />
+              </div>
+              <div className="space-y-2">
+                <Label>Monto Reclamado (Bs)</Label>
+                <Input type="number" step="0.01" min="0" value={claimedAmountBs} onChange={(e) => setClaimedAmountBs(e.target.value)} placeholder="0.00" />
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>

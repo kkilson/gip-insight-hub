@@ -110,6 +110,8 @@ export function useCreateCase() {
       priority?: string;
       due_date?: string;
       affects_consumption?: boolean;
+      claimed_amount_usd?: number;
+      claimed_amount_bs?: number;
     }) => {
       // Get first phase of case type
       const { data: phases } = await supabase
@@ -192,16 +194,22 @@ export function useUpdateCaseStatus() {
       newStatus,
       previousStatus,
       notes,
+      approvedAmountUsd,
+      approvedAmountBs,
     }: {
       caseId: string;
       newStatus: string;
       previousStatus?: string;
       notes?: string;
+      approvedAmountUsd?: number;
+      approvedAmountBs?: number;
     }) => {
       const updateData: any = { status: newStatus };
       if (newStatus === 'completado' || newStatus === 'cancelado') {
         updateData.closed_at = new Date().toISOString();
       }
+      if (approvedAmountUsd !== undefined) updateData.approved_amount_usd = approvedAmountUsd;
+      if (approvedAmountBs !== undefined) updateData.approved_amount_bs = approvedAmountBs;
 
       const { error: updateError } = await supabase
         .from('tracking_cases')
@@ -218,10 +226,61 @@ export function useUpdateCaseStatus() {
           notes,
         });
       if (logError) throw logError;
+
+      // Auto-create consumption when completing a case that affects consumption
+      if (newStatus === 'completado') {
+        const { data: caseRecord } = await supabase
+          .from('tracking_cases')
+          .select('*, tracking_case_types(name, affects_consumption)')
+          .eq('id', caseId)
+          .single();
+
+        if (caseRecord?.affects_consumption && caseRecord?.policy_id) {
+          // Find a matching usage_type
+          const caseTypeName = caseRecord.tracking_case_types?.name || 'Seguimiento';
+          const { data: usageTypes } = await supabase
+            .from('usage_types')
+            .select('id, name')
+            .limit(50);
+
+          // Try to match by name, fallback to first available
+          const matchedType = usageTypes?.find((ut) =>
+            caseTypeName.toLowerCase().includes(ut.name.toLowerCase()) ||
+            ut.name.toLowerCase().includes('reembolso') ||
+            ut.name.toLowerCase().includes('emergencia')
+          ) || usageTypes?.[0];
+
+          if (matchedType) {
+            const finalUsd = approvedAmountUsd ?? caseRecord.approved_amount_usd ?? caseRecord.claimed_amount_usd ?? 0;
+            const finalBs = approvedAmountBs ?? caseRecord.approved_amount_bs ?? caseRecord.claimed_amount_bs ?? 0;
+
+            const { data: consumption, error: consError } = await supabase
+              .from('policy_consumptions')
+              .insert({
+                policy_id: caseRecord.policy_id,
+                usage_type_id: matchedType.id,
+                usage_date: new Date().toISOString().split('T')[0],
+                description: `${caseTypeName}: ${caseRecord.title}`,
+                amount_usd: finalUsd,
+                amount_bs: finalBs,
+              })
+              .select()
+              .single();
+
+            if (!consError && consumption) {
+              await supabase
+                .from('tracking_cases')
+                .update({ consumption_id: consumption.id })
+                .eq('id', caseId);
+            }
+          }
+        }
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['tracking-cases'] });
       qc.invalidateQueries({ queryKey: ['tracking-case-updates'] });
+      qc.invalidateQueries({ queryKey: ['consumptions'] });
       toast.success('Estado actualizado');
     },
     onError: (e: any) => toast.error(`Error: ${e.message}`),
