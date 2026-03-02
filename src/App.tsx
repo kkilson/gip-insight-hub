@@ -23,6 +23,7 @@ import Finances from "./pages/Finances";
 import Sales from "./pages/Sales";
 import Partnerships from "./pages/Partnerships";
 import Commissions from "./pages/Commissions";
+import Tracking from "./pages/Tracking";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -78,6 +79,7 @@ const App = () => (
             <Route path="/tutorials" element={<ProtectedLayout><Tutorials /></ProtectedLayout>} />
             <Route path="/sales" element={<ProtectedLayout><Sales /></ProtectedLayout>} />
             <Route path="/partnerships" element={<ProtectedLayout><Partnerships /></ProtectedLayout>} />
+            <Route path="/tracking" element={<ProtectedLayout><Tracking /></ProtectedLayout>} />
             <Route path="/advisors" element={
               <ProtectedRoute requiredRoles={['acceso_total']}>
                 <AppLayout><Advisors /></AppLayout>

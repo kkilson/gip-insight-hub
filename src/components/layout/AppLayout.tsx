@@ -30,6 +30,7 @@ import {
   ScrollText,
   Menu,
   UserCog,
+  ClipboardCheck,
 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -106,6 +107,11 @@ const navigationItems: NavItem[] = [
     title: 'Alianzas',
     href: '/partnerships',
     icon: Handshake,
+  },
+  {
+    title: 'Seguimientos',
+    href: '/tracking',
+    icon: ClipboardCheck,
   },
   {
     title: 'Asesores',

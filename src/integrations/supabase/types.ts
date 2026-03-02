@@ -1987,6 +1987,371 @@ export type Database = {
           },
         ]
       }
+      tracking_case_phases: {
+        Row: {
+          case_type_id: string
+          created_at: string
+          description: string | null
+          expected_duration_days: number
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          case_type_id: string
+          created_at?: string
+          description?: string | null
+          expected_duration_days?: number
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          case_type_id?: string
+          created_at?: string
+          description?: string | null
+          expected_duration_days?: number
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_case_phases_case_type_id_fkey"
+            columns: ["case_type_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_case_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tracking_case_types: {
+        Row: {
+          affects_consumption: boolean
+          created_at: string
+          default_duration_days: number
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          affects_consumption?: boolean
+          created_at?: string
+          default_duration_days?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          affects_consumption?: boolean
+          created_at?: string
+          default_duration_days?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tracking_case_updates: {
+        Row: {
+          case_id: string
+          changed_by: string | null
+          created_at: string
+          id: string
+          new_phase_id: string | null
+          new_status: Database["public"]["Enums"]["tracking_case_status"] | null
+          notes: string | null
+          previous_phase_id: string | null
+          previous_status:
+            | Database["public"]["Enums"]["tracking_case_status"]
+            | null
+        }
+        Insert: {
+          case_id: string
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          new_phase_id?: string | null
+          new_status?:
+            | Database["public"]["Enums"]["tracking_case_status"]
+            | null
+          notes?: string | null
+          previous_phase_id?: string | null
+          previous_status?:
+            | Database["public"]["Enums"]["tracking_case_status"]
+            | null
+        }
+        Update: {
+          case_id?: string
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          new_phase_id?: string | null
+          new_status?:
+            | Database["public"]["Enums"]["tracking_case_status"]
+            | null
+          notes?: string | null
+          previous_phase_id?: string | null
+          previous_status?:
+            | Database["public"]["Enums"]["tracking_case_status"]
+            | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_case_updates_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracking_case_updates_new_phase_id_fkey"
+            columns: ["new_phase_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_case_phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracking_case_updates_previous_phase_id_fkey"
+            columns: ["previous_phase_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_case_phases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tracking_cases: {
+        Row: {
+          affects_consumption: boolean
+          case_type_id: string
+          client_id: string
+          closed_at: string | null
+          consumption_id: string | null
+          created_at: string
+          created_by: string | null
+          current_phase_id: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          opened_at: string
+          policy_id: string | null
+          priority: string
+          renewal_id: string | null
+          status: Database["public"]["Enums"]["tracking_case_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          affects_consumption?: boolean
+          case_type_id: string
+          client_id: string
+          closed_at?: string | null
+          consumption_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_phase_id?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          opened_at?: string
+          policy_id?: string | null
+          priority?: string
+          renewal_id?: string | null
+          status?: Database["public"]["Enums"]["tracking_case_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          affects_consumption?: boolean
+          case_type_id?: string
+          client_id?: string
+          closed_at?: string | null
+          consumption_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_phase_id?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          opened_at?: string
+          policy_id?: string | null
+          priority?: string
+          renewal_id?: string | null
+          status?: Database["public"]["Enums"]["tracking_case_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_cases_case_type_id_fkey"
+            columns: ["case_type_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_case_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracking_cases_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracking_cases_consumption_id_fkey"
+            columns: ["consumption_id"]
+            isOneToOne: false
+            referencedRelation: "policy_consumptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracking_cases_current_phase_id_fkey"
+            columns: ["current_phase_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_case_phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracking_cases_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracking_cases_renewal_id_fkey"
+            columns: ["renewal_id"]
+            isOneToOne: false
+            referencedRelation: "renewal_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tracking_follow_up_patterns: {
+        Row: {
+          action_type: string
+          case_type_id: string
+          channel: string
+          created_at: string
+          days_after_phase_start: number
+          id: string
+          is_active: boolean
+          message_template: string | null
+          phase_id: string | null
+          requires_approval: boolean
+          updated_at: string
+        }
+        Insert: {
+          action_type?: string
+          case_type_id: string
+          channel?: string
+          created_at?: string
+          days_after_phase_start?: number
+          id?: string
+          is_active?: boolean
+          message_template?: string | null
+          phase_id?: string | null
+          requires_approval?: boolean
+          updated_at?: string
+        }
+        Update: {
+          action_type?: string
+          case_type_id?: string
+          channel?: string
+          created_at?: string
+          days_after_phase_start?: number
+          id?: string
+          is_active?: boolean
+          message_template?: string | null
+          phase_id?: string | null
+          requires_approval?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_follow_up_patterns_case_type_id_fkey"
+            columns: ["case_type_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_case_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracking_follow_up_patterns_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_case_phases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tracking_scheduled_reminders: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          case_id: string
+          channel: string
+          created_at: string
+          id: string
+          message_content: string | null
+          pattern_id: string | null
+          scheduled_date: string
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          case_id: string
+          channel?: string
+          created_at?: string
+          id?: string
+          message_content?: string | null
+          pattern_id?: string | null
+          scheduled_date: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          case_id?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          message_content?: string | null
+          pattern_id?: string | null
+          scheduled_date?: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_scheduled_reminders_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracking_scheduled_reminders_pattern_id_fkey"
+            columns: ["pattern_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_follow_up_patterns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usage_types: {
         Row: {
           created_at: string
@@ -2129,6 +2494,12 @@ export type Database = {
         | "ganado"
         | "perdido"
         | "postergado"
+      tracking_case_status:
+        | "abierto"
+        | "en_progreso"
+        | "en_espera"
+        | "completado"
+        | "cancelado"
       transaction_type:
         | "deposito"
         | "retiro"
@@ -2344,6 +2715,13 @@ export const Constants = {
         "ganado",
         "perdido",
         "postergado",
+      ],
+      tracking_case_status: [
+        "abierto",
+        "en_progreso",
+        "en_espera",
+        "completado",
+        "cancelado",
       ],
       transaction_type: [
         "deposito",
