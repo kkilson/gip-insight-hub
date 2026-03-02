@@ -32,15 +32,45 @@ export function CaseFormDialog({ open, onOpenChange }: CaseFormDialogProps) {
 
   // Search clients
   useEffect(() => {
-    if (clientSearch.length < 2) { setClients([]); return; }
+    if (clientSearch.trim().length < 1) { setClients([]); return; }
     const timer = setTimeout(async () => {
-      const { data } = await supabase
+      const search = clientSearch.trim();
+      // Split search into words for better matching
+      const words = search.split(/\s+/).filter(Boolean);
+      
+      let query = supabase
         .from('clients')
-        .select('id, first_name, last_name, identification_number')
-        .or(`first_name.ilike.%${clientSearch}%,last_name.ilike.%${clientSearch}%,identification_number.ilike.%${clientSearch}%`)
-        .limit(10);
-      setClients(data || []);
-    }, 300);
+        .select('id, first_name, last_name, identification_number, email, mobile, phone')
+        .limit(15);
+
+      if (words.length === 1) {
+        const w = words[0];
+        query = query.or(`first_name.ilike.%${w}%,last_name.ilike.%${w}%,identification_number.ilike.%${w}%,email.ilike.%${w}%`);
+      } else {
+        // Multi-word: match first_name + last_name combo
+        query = query.or(
+          `first_name.ilike.%${words[0]}%,last_name.ilike.%${words[0]}%,identification_number.ilike.%${search}%`
+        );
+      }
+
+      const { data, error } = await query;
+      if (error) {
+        console.error('Error buscando clientes:', error);
+        setClients([]);
+        return;
+      }
+
+      // Client-side refinement for multi-word searches
+      let results = data || [];
+      if (words.length > 1) {
+        results = results.filter((c) => {
+          const fullName = `${c.first_name} ${c.last_name}`.toLowerCase();
+          return words.every((w) => fullName.includes(w.toLowerCase()));
+        });
+      }
+
+      setClients(results);
+    }, 200);
     return () => clearTimeout(timer);
   }, [clientSearch]);
 
@@ -119,21 +149,33 @@ export function CaseFormDialog({ open, onOpenChange }: CaseFormDialogProps) {
             ) : (
               <div className="relative">
                 <Input
-                  placeholder="Buscar por nombre o cédula..."
+                  placeholder="Buscar por nombre, cédula o email..."
                   value={clientSearch}
                   onChange={(e) => setClientSearch(e.target.value)}
+                  autoComplete="off"
                 />
-                {clients.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-y-auto">
-                    {clients.map((c) => (
-                      <button
-                        key={c.id}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-muted"
-                        onClick={() => { setSelectedClient(c); setClients([]); }}
-                      >
-                        {c.first_name} {c.last_name} — {c.identification_number}
-                      </button>
-                    ))}
+                {clientSearch.trim().length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                    {clients.length > 0 ? (
+                      clients.map((c) => (
+                        <button
+                          key={c.id}
+                          className="w-full text-left px-3 py-2.5 text-sm hover:bg-muted border-b last:border-b-0 transition-colors"
+                          onClick={() => { setSelectedClient(c); setClients([]); setClientSearch(''); }}
+                        >
+                          <div className="font-medium">{c.first_name} {c.last_name}</div>
+                          <div className="text-xs text-muted-foreground flex gap-3">
+                            <span>Cédula: {c.identification_number}</span>
+                            {c.email && <span>{c.email}</span>}
+                            {(c.mobile || c.phone) && <span>Tel: {c.mobile || c.phone}</span>}
+                          </div>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-3 py-3 text-sm text-muted-foreground text-center">
+                        No se encontraron clientes
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
