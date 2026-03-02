@@ -6,9 +6,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCasePhases, useCaseUpdates, useUpdateCasePhase, useUpdateCaseStatus } from '@/hooks/useTracking';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowRight, Clock } from 'lucide-react';
+import { ArrowRight, Clock, DollarSign } from 'lucide-react';
 import { useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface CaseDetailDialogProps {
   open: boolean;
@@ -45,6 +47,8 @@ export function CaseDetailDialog({ open, onOpenChange, caseData }: CaseDetailDia
   const updatePhase = useUpdateCasePhase();
   const updateStatus = useUpdateCaseStatus();
   const [notes, setNotes] = useState('');
+  const [approvedUsd, setApprovedUsd] = useState('');
+  const [approvedBs, setApprovedBs] = useState('');
 
   if (!caseData) return null;
 
@@ -69,8 +73,12 @@ export function CaseDetailDialog({ open, onOpenChange, caseData }: CaseDetailDia
       newStatus,
       previousStatus: caseData.status,
       notes: notes || undefined,
+      approvedAmountUsd: approvedUsd ? parseFloat(approvedUsd) : undefined,
+      approvedAmountBs: approvedBs ? parseFloat(approvedBs) : undefined,
     });
     setNotes('');
+    setApprovedUsd('');
+    setApprovedBs('');
   };
 
   return (
@@ -122,6 +130,34 @@ export function CaseDetailDialog({ open, onOpenChange, caseData }: CaseDetailDia
             </div>
           )}
 
+          {/* Amounts Section */}
+          {caseData.affects_consumption && (
+            <div className="p-3 border rounded-md bg-muted/30 space-y-2">
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign className="h-4 w-4 text-primary" />
+                <p className="text-sm font-medium">Montos del Caso</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Reclamado (USD)</p>
+                  <p className="font-medium">${(caseData.claimed_amount_usd || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Reclamado (Bs)</p>
+                  <p className="font-medium">Bs {(caseData.claimed_amount_bs || 0).toLocaleString('es-VE', { minimumFractionDigits: 2 })}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Aprobado (USD)</p>
+                  <p className="font-medium text-green-700">${(caseData.approved_amount_usd || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Aprobado (Bs)</p>
+                  <p className="font-medium text-green-700">Bs {(caseData.approved_amount_bs || 0).toLocaleString('es-VE', { minimumFractionDigits: 2 })}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <Separator />
 
           {/* Phase Progress */}
@@ -170,11 +206,29 @@ export function CaseDetailDialog({ open, onOpenChange, caseData }: CaseDetailDia
             </div>
           </div>
 
-          {/* Notes */}
+          {/* Notes & Approved Amounts */}
           <div className="space-y-2">
             <p className="text-sm font-medium">Notas de actualización</p>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Agregar nota al cambio..." />
           </div>
+
+          {/* Approved amount inputs - show when case affects consumption and not yet completed */}
+          {caseData.affects_consumption && caseData.status !== 'completado' && (
+            <div className="grid grid-cols-2 gap-4 p-3 border rounded-md border-green-200 bg-green-50/50">
+              <div className="col-span-2">
+                <p className="text-sm font-medium text-green-800">Montos Aprobados (al completar)</p>
+                <p className="text-xs text-muted-foreground">Se registrarán como consumo de póliza al marcar como Completado</p>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Aprobado USD</Label>
+                <Input type="number" step="0.01" min="0" value={approvedUsd} onChange={(e) => setApprovedUsd(e.target.value)} placeholder="0.00" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Aprobado Bs</Label>
+                <Input type="number" step="0.01" min="0" value={approvedBs} onChange={(e) => setApprovedBs(e.target.value)} placeholder="0.00" />
+              </div>
+            </div>
+          )}
 
           <Separator />
 

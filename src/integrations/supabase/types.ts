@@ -2132,7 +2132,11 @@ export type Database = {
       tracking_cases: {
         Row: {
           affects_consumption: boolean
+          approved_amount_bs: number | null
+          approved_amount_usd: number | null
           case_type_id: string
+          claimed_amount_bs: number | null
+          claimed_amount_usd: number | null
           client_id: string
           closed_at: string | null
           consumption_id: string | null
@@ -2152,7 +2156,11 @@ export type Database = {
         }
         Insert: {
           affects_consumption?: boolean
+          approved_amount_bs?: number | null
+          approved_amount_usd?: number | null
           case_type_id: string
+          claimed_amount_bs?: number | null
+          claimed_amount_usd?: number | null
           client_id: string
           closed_at?: string | null
           consumption_id?: string | null
@@ -2172,7 +2180,11 @@ export type Database = {
         }
         Update: {
           affects_consumption?: boolean
+          approved_amount_bs?: number | null
+          approved_amount_usd?: number | null
           case_type_id?: string
+          claimed_amount_bs?: number | null
+          claimed_amount_usd?: number | null
           client_id?: string
           closed_at?: string | null
           consumption_id?: string | null
